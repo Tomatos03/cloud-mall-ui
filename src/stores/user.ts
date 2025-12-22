@@ -1,0 +1,53 @@
+import { defineStore } from 'pinia'
+
+// 用户状态类型定义，规定了用户状态包含哪些字段及类型
+
+export interface UserState {
+    id: string // 用户ID
+    nickname: string // 用户昵称
+    token: string // 登录令牌
+    avatar?: string // 用户头像（可选）
+}
+
+/**
+ * 用户状态管理 Store
+ * - 用于集中管理用户相关的状态数据
+ * - 支持持久化，自动同步到 localStorage
+ */
+export const useUserStore = defineStore('user', {
+    state: (): UserState => ({
+        id: '',
+        nickname: '',
+        token: '',
+        avatar: '',
+    }),
+    actions: {
+        /**
+         * 批量设置用户信息
+         * @param user 传入部分或全部用户字段，自动合并到当前状态
+         */
+        setUser(user: Partial<UserState>) {
+            Object.assign(this, user)
+        },
+
+        /**
+         * 清空用户信息（如退出登录时调用）
+         */
+        clearUser() {
+            this.id = ''
+            this.nickname = ''
+            this.token = ''
+            this.avatar = ''
+        },
+
+        /**
+         * 退出登录，清空用户信息并移除持久化存储中的用户数据
+         */
+        logout() {
+            // 清空当前内存状态
+            this.clearUser()
+        },
+    },
+    // persist 配置用于状态持久化（依赖 pinia-plugin-persistedstate 插件）
+    persist: true,
+})
