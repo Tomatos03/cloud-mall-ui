@@ -1,5 +1,5 @@
 import http from '@/utils/http'
-import type { ResponseData } from '@/utils/http'
+
 
 /**
  * 订单状态枚举

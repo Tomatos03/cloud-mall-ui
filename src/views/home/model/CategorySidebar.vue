@@ -1,42 +1,63 @@
 <template>
     <div class="relative h-full w-full overflow-visible">
+        <!-- 左侧分类列表 -->
         <ul
-            class="h-full w-full bg-black/90 text-white flex flex-col"
+            class="h-full w-full bg-gray-900/80 backdrop-blur-md text-white flex flex-col py-4 rounded-2xl shadow-lg shadow-gray-200"
             v-if="gruopedCategories.has(1)"
         >
             <template v-for="[_, categories] in gruopedCategories.get(1)!.entries()">
                 <li
-                    class="px-15 py-2 hover:bg-blue-800/50 cursor-pointer flex-1 flex justify-between items-center gap-5"
+                    class="px-8 py-3 hover:bg-orange-500 cursor-pointer flex-1 flex justify-between items-center gap-5 transition-all group"
                     v-for="category in categories"
                     :key="category.id"
                     @mouseenter="handleMouseEnter(category)"
                     @mouseleave="handleMouseLeave"
+                    @click="handleSelect(category)"
                 >
-                    <span>
-                        {{ category.text }}
+                    <span class="text-base font-medium group-hover:font-bold">
+                        {{ category.name }}
                     </span>
-                    <el-icon class="text-white"><ArrowRightBold /></el-icon>
+                    <el-icon
+                        class="text-white/70 group-hover:text-white transition-transform group-hover:translate-x-1"
+                    >
+                        <ArrowRightBold />
+                    </el-icon>
                 </li>
             </template>
         </ul>
 
-        <!-- 选项展示 -->
+        <!-- 右侧二级/三级分类弹出面板 -->
         <div
             v-if="isActive && activeCategory"
             @mouseenter="handleOptionsMouseEnter"
             @mouseleave="handleOptionsMouseLeave"
-            class="absolute top-0 z-10 left-full w-96 bg-white border border-gray-300 shadow-lg flex flex-col justify-start p-4"
+            class="absolute top-0 z-999 left-full ml-2 w-200 h-full bg-white shadow-2xl flex flex-col justify-start p-8 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-left-2 duration-200"
         >
-            <div class="flex flex-col gap-4">
-                <div v-for="sub in subCategories" :key="sub.level2.id" class="flex gap-4">
-                    <div class="w-24 font-semibold text-gray-700">{{ sub.level2.text }}</div>
-                    <div class="flex gap-1 flex-1 flex-wrap">
+            <div class="flex flex-col gap-8 overflow-y-auto">
+                <div
+                    v-for="sub in subCategories"
+                    :key="sub.level2.id"
+                    class="flex items-start gap-8"
+                >
+                    <!-- 二级分类标题 -->
+                    <div
+                        class="w-28 shrink-0 font-bold text-gray-800 cursor-pointer hover:text-orange-500 transition-colors flex items-center gap-1 text-sm"
+                        @click.stop="handleSelect(sub.level2, true)"
+                    >
+                        {{ sub.level2.name }}
+                        <el-icon :size="12"><ArrowRight /></el-icon>
+                    </div>
+                    <!-- 三级分类列表 -->
+                    <div
+                        class="flex gap-x-6 gap-y-3 flex-1 flex-wrap border-b border-gray-50 pb-6 last:border-0"
+                    >
                         <span
                             v-for="cat3 in sub.level3"
                             :key="cat3.id"
-                            class="py-1 hover:text-blue-500 cursor-pointer text-sm text-black/80"
+                            class="hover:text-orange-500 cursor-pointer text-sm text-gray-600 transition-colors"
+                            @click="handleSelect(cat3, true)"
                         >
-                            {{ cat3.text }}
+                            {{ cat3.name }}
                         </span>
                     </div>
                 </div>
@@ -47,7 +68,10 @@
 
 <script lang="ts" setup>
     import type { CategoryItem } from '@/api/home'
-    import { ref, toRefs, computed, watchEffect } from 'vue'
+    import { ref, toRefs, computed } from 'vue'
+    import { ArrowRightBold, ArrowRight } from '@element-plus/icons-vue'
+
+    const emit = defineEmits<{ (e: 'select', payload: { id: string; name: string }): void }>()
 
     interface Props {
         categories: CategoryItem[]
@@ -61,16 +85,6 @@
     let hideTimeout: number | null = null
 
     const { categories } = toRefs(props)
-
-    // 将外部传入的 categories 规范化为组件所需的格式（id/text/parentId 都为字符串）
-    const normalizedCategories = computed(() =>
-        categories.value.map((c: any) => ({
-            id: String(c.id),
-            text: c.text ?? c.name ?? '',
-            level: c.level,
-            parentId: String(c.parentId ?? 0),
-        })),
-    )
 
     const groupCategoriesByLevelThenParent = (
         categories: CategoryItem[],
@@ -94,15 +108,7 @@
         return groups
     }
 
-    const gruopedCategories = computed(() =>
-        groupCategoriesByLevelThenParent(normalizedCategories.value),
-    )
-
-    // 调试：当 categories 变化时输出规范化和分组结果（方便排查）
-    // watchEffect(() => {
-    //     console.log('Normalized Categories:', normalizedCategories.value)
-    //     console.log('Grouped Categories:', gruopedCategories.value)
-    // })
+    const gruopedCategories = computed(() => groupCategoriesByLevelThenParent(categories.value))
 
     const subCategories = computed(() => {
         if (!activeCategory.value) return []
@@ -128,6 +134,19 @@
         }, 100)
     }
 
+    // 处理选择（点击）事件
+    const handleSelect = (category: CategoryItem, isSub = false) => {
+        emit('select', {
+            id: category.id,
+            name: category.name,
+        })
+
+        if (isSub) {
+            isActive.value = false
+            activeCategory.value = null
+        }
+    }
+
     const handleOptionsMouseEnter = () => {
         if (hideTimeout) {
             clearTimeout(hideTimeout)
@@ -140,6 +159,39 @@
         hideTimeout = setTimeout(() => {
             isActive.value = false
             activeCategory.value = null
-        }, 100)
+        }, 150)
     }
 </script>
+
+<style scoped>
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slide-in-from-left {
+        from {
+            transform: translateX(-10px);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    .animate-in {
+        animation-duration: 200ms;
+        animation-fill-mode: both;
+    }
+
+    .fade-in {
+        animation-name: fade-in;
+    }
+
+    .slide-in-from-left-2 {
+        animation-name: slide-in-from-left;
+    }
+</style>

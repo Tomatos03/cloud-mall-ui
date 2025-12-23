@@ -22,7 +22,7 @@
   1. 标准省份（如河北省）: 省(130000) -> 市(130100) -> 区(130102)
   2. 直辖市（如北京市）: 省(110000) -> 区(110101)，无二级行政区
   3. 特别行政区（如香港）: 省(810000)，可能无下级或只有部分下级
-  
+
   注意事项:
   - 地区代码规则：
     * 一级行政区：后4位为0000，如 "110000" (北京市)
@@ -38,14 +38,14 @@
         :props="cascaderProps"
         clearable
         placeholder="请选择地区"
-        class="w-80"
+        class="custom-cascader"
         @change="handleChange"
     />
 </template>
 
 <script setup lang="ts">
     import { ref, watch, onMounted } from 'vue'
-    import type { CascaderNode, CascaderNodeValue } from 'element-plus'
+    import type { CascaderNode } from 'element-plus'
     import {
         buildRegionTree,
         getDirectChildrenRegions,
@@ -157,3 +157,19 @@
         selectedCodes,
     })
 </script>
+
+<style scoped>
+    .custom-cascader {
+        width: 100%;
+    }
+
+    :deep(.el-input__wrapper) {
+        border-radius: 12px !important;
+        padding: 4px 12px !important;
+        box-shadow: 0 0 0 1px #f3f4f6 inset !important;
+    }
+
+    :deep(.el-input__wrapper.is-focus) {
+        box-shadow: 0 0 0 1px #f97316 inset !important;
+    }
+</style>

@@ -11,7 +11,7 @@
                     class="w-full h-full cursor-pointer"
                     @click="handleBannerClick(banner)"
                 >
-                    <el-image class="w-full h-full" :src="banner.imageUrl" fit="fill" />
+                    <el-image class="w-full h-full" :src="banner.imageUrl" fit="cover" />
                 </div>
             </el-carousel-item>
         </el-carousel>

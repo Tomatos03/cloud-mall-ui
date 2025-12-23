@@ -1,5 +1,8 @@
 <template>
-    <div class="category-products bg-white rounded-2xl shadow p-6 mb-6">
+    <div
+        class="category-products bg-white rounded-2xl shadow p-6 mb-6"
+        v-if="goodsList && goodsList.length > 0"
+    >
         <!-- 顶部标题栏 -->
         <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
             <h2 class="text-2xl font-bold text-gray-800">{{ categoryTitle }}</h2>
@@ -25,68 +28,66 @@
 
         <!-- 商品网格 -->
         <div class="products-grid">
-            <!-- 左侧大图商品 -->
+            <!-- 左侧主推商品，直接用 products[0] -->
             <div
+                v-if="goodsList[0]"
                 class="featured-product bg-linear-to-br from-purple-100 to-blue-100 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-shadow"
-                @click="goToProduct(featuredProduct.id)"
+                @click="onGoodsClick(goodsList[0].id, goodsList[0].storeId)"
             >
                 <div class="flex flex-col h-full">
                     <h3 class="text-xl font-bold text-gray-800 mb-2">
-                        {{ featuredProduct.name }}
+                        {{ goodsList[0].name }}
                     </h3>
-                    <p class="text-sm text-gray-600 mb-4">{{ featuredProduct.description }}</p>
+                    <p class="text-sm text-gray-600 mb-4">{{ goodsList[0].info }}</p>
                     <div class="flex-1 flex items-center justify-center mb-4">
                         <img
-                            :src="featuredProduct.image"
-                            :alt="featuredProduct.name"
+                            :src="goodsList[0].image"
+                            :alt="goodsList[0].name"
                             class="max-w-full max-h-64 object-contain"
                         />
                     </div>
                     <div class="flex items-baseline gap-2">
                         <span class="text-orange-500 text-2xl font-bold">
-                            {{ featuredProduct.price }}元
+                            {{ goodsList[0].price }}元
                         </span>
-                        <span
-                            v-if="featuredProduct.originalPrice"
-                            class="text-gray-400 line-through"
-                        >
-                            {{ featuredProduct.originalPrice }}元
+                        <span v-if="goodsList[0].originalPrice" class="text-gray-400 line-through">
+                            {{ goodsList[0].originalPrice }}元
                         </span>
                     </div>
                 </div>
             </div>
 
-            <!-- 右侧商品列表 -->
+            <!-- 右侧商品列表（不包含主推商品） -->
             <div class="products-list">
                 <div
-                    v-for="product in products"
-                    :key="product.id"
+                    v-for="goods in goodsList.slice(1)"
+                    :key="goods.id"
                     class="product-card bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-all border border-gray-100 hover:border-orange-300"
-                    @click="goToProduct(product.id)"
+                    @click="onGoodsClick(goods.id, goods.storeId)"
                 >
                     <div class="flex flex-col h-full">
                         <div class="flex-1 flex items-center justify-center mb-3">
                             <img
-                                :src="product.image"
-                                :alt="product.name"
+                                :src="goods.image"
+                                :alt="goods.name"
                                 class="max-w-full max-h-40 object-contain"
                             />
                         </div>
                         <h4 class="text-sm font-medium text-gray-800 mb-2 line-clamp-2">
-                            {{ product.name }}
+                            {{ goods.name }}
                         </h4>
                         <p class="text-xs text-gray-500 mb-2 line-clamp-1">
-                            {{ product.description }}
+                            {{ goods.info }}
                         </p>
                         <div class="flex items-baseline gap-2">
                             <span class="text-orange-500 text-lg font-bold">
-                                {{ product.price }}元
+                                {{ goods.price }}元
                             </span>
                             <span
-                                v-if="product.originalPrice"
+                                v-if="goods.originalPrice"
                                 class="text-xs text-gray-400 line-through"
                             >
-                                {{ product.originalPrice }}元
+                                {{ goods.originalPrice }}元
                             </span>
                         </div>
                     </div>
@@ -94,7 +95,7 @@
 
                 <!-- 查看更多按钮 -->
                 <div
-                    class="view-more bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 cursor-pointer hover:shadow-md transition-all flex flex-col items-center justify-center"
+                    class="view-more bg-linear-to-br from-orange-50 to-orange-100 rounded-lg p-4 cursor-pointer hover:shadow-md transition-all flex flex-col items-center justify-center"
                     @click="viewMore"
                 >
                     <div
@@ -113,134 +114,49 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, computed } from 'vue'
-    import { useRouter } from 'vue-router'
     import { ArrowRight } from '@element-plus/icons-vue'
+    import { computed } from 'vue'
 
-    interface Product {
-        id: number
+    interface GoodsCard {
+        id: string
         name: string
-        description: string
+        info: string
         image: string
-        price: string | number
-        originalPrice?: string | number
+        price: string
+        storeId: string
+        originalPrice?: string
     }
 
     interface Tab {
-        id: number | string
+        id: string
         name: string
     }
 
-    interface Props {
-        categoryTitle?: string
-        categoryId?: number | string
-        tabs?: Tab[]
-        featuredProduct?: Product
-        products?: Product[]
-    }
+    const props = defineProps<{
+        categoryTitle: string
+        categoryId: string
+        tabs: Tab[]
+        goodsList: GoodsCard[]
+        activeTab: string | number
+    }>()
 
-    const props = withDefaults(defineProps<Props>(), {
-        categoryTitle: '家电',
-        tabs: () => [
-            { id: 'hot', name: '热门' },
-            { id: 'tv', name: '电视影音' },
-            { id: 'air', name: '空调' },
-        ],
-        featuredProduct: () => ({
-            id: 1,
-            name: '小米电视 S Mini LED 系列',
-            description: 'Mini LED 悬浮屏设计 开启图像新时代',
-            image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/29e4e456c5dd08c395ac4ddf2e1be473.jpg',
-            price: '2999',
-            originalPrice: '3499',
-        }),
-        products: () => [
-            {
-                id: 2,
-                name: '小米电视S Pro Mini LED系列',
-                description: '288Hz超高刷 4.64G大存储',
-                image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/d604255f1d085b36a0a2b2f5c88917e0.png',
-                price: '4999',
-                originalPrice: '',
-            },
-            {
-                id: 3,
-                name: '小米电视 S Mini LED 系列',
-                description: 'Mini LED 悬浮屏设计 1200nits峰值亮度',
-                image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/4c53763d23c456e69afc38d5a51e15f9.jpg',
-                price: '2999',
-                originalPrice: '',
-            },
-            {
-                id: 4,
-                name: 'Redmi 智能电视 X 2025款',
-                description: '240Hz高刷 4+64GB 全程通高色域',
-                image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/d9f30b3e28bc5f61d0c5e1d55f7eac58.png',
-                price: '3499',
-                originalPrice: '',
-            },
-            {
-                id: 5,
-                name: '巨省电Pro 1.5匹超一级能效 米家空调',
-                description: '新一代巨省电Pro新升级',
-                image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/6ed84c456dca61f1a3d9e59dd6f92d14.png',
-                price: '2499',
-                originalPrice: '2999',
-            },
-            {
-                id: 6,
-                name: '巨省电 小米空调 1.5匹超一级能效',
-                description: '强劲制冷 高效节能 智能物联',
-                image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/3e93b4b37e96a1b8aa57b73f5f3bf61f.png',
-                price: '1999',
-                originalPrice: '2499',
-            },
-            {
-                id: 7,
-                name: '巨首Pro 立式3吧 超一级能效',
-                description: '精护洗Pro 洗烘10kg',
-                image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/0aebdd1fd4e5aa0e673f1d60e0e6e2e0.png',
-                price: '6499',
-                originalPrice: '',
-            },
-            {
-                id: 8,
-                name: '米家迷你滚筒洗衣机Pro 3kg',
-                description: '',
-                image: 'https://cdn.cnbj1.fds.api.mi-img.com/mi-mall/a3c3f4c1e1e6b9b4e6d6f2e0f3e8a9c1.png',
-                price: '399',
-                originalPrice: '',
-            },
-        ],
-    })
-
-    const router = useRouter()
-    const activeTab = ref<number | string>(props.tabs[0]?.id || 'hot')
+    const emit = defineEmits(['product-click', 'tab-change', 'view-more'])
 
     const activeTabName = computed(() => {
-        const tab = props.tabs.find((t) => t.id === activeTab.value)
-        return tab?.name || '热门'
+        const tab = props.tabs.find((t) => t.id === props.activeTab)
+        return tab?.name || ''
     })
 
-    const switchTab = (tabId: number | string) => {
-        activeTab.value = tabId
-        // 这里可以根据 tabId 加载不同的商品数据
-        console.log('切换到标签:', tabId)
+    function switchTab(tabId: string) {
+        emit('tab-change', tabId)
     }
 
-    const goToProduct = (productId: number) => {
-        router.push(`/product/${productId}`)
+    function onGoodsClick(productId: string, storeId: string) {
+        emit('product-click', productId, storeId)
     }
 
-    const viewMore = () => {
-        // 跳转到分类列表页
-        router.push({
-            path: '/category',
-            query: {
-                categoryId: props.categoryId,
-                tab: activeTab.value,
-            },
-        })
+    function viewMore() {
+        emit('view-more', activeTabName.value)
     }
 </script>
 

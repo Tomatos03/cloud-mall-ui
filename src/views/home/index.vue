@@ -1,18 +1,18 @@
 <template>
-    <div class="flex flex-col h-screen overflow-hidden bg-gray-100">
+    <div class="flex flex-col h-screen overflow-hidden bg-slate-50">
         <el-header class="sticky top-0 z-30 shrink-0" style="padding-bottom: 10px">
             <Header />
         </el-header>
 
         <el-main class="flex-1 overflow-y-auto overflow-x-hidden space-y-5">
             <div class="p-4">
-                <el-container class="h-100">
-                    <el-aside width="300px" class="categoryAside">
-                        <CategorySidebar :categories="categories" />
+                <el-container class="h-120">
+                    <el-aside width="280px" class="categoryAside">
+                        <CategorySidebar :categories="categories" @select="handleCategorySelect" />
                     </el-aside>
                     <el-main style="padding: 0 16px">
                         <BannerCarousel
-                            class="rounded-2xl overflow-hidden"
+                            class="overflow-hidden rounded-2xl shadow-lg shadow-gray-200"
                             :banners="banners"
                             :interval="5000"
                             arrow="always"
@@ -20,80 +20,124 @@
                         />
                     </el-main>
 
-                    <el-aside width="300px">
+                    <el-aside width="280px">
                         <!-- 个人信息组件 -->
                         <div
-                            class="shadow flex flex-col gap-4 rounded-2xl w-full h-full justify-center items-center p-4 bg-white"
+                            class="shadow-md flex flex-col gap-6 rounded-2xl w-full h-full items-center p-6 bg-white border border-gray-100"
                         >
-                            <img
-                                :src="user.avatar"
-                                :alt="user.nickname"
-                                class="rounded-2xl bg-gray-400 text-white flex justify-center items-center w-24 h-24"
-                            />
-                            <h2 class="decoration-solid text-black font-bold">
-                                {{ user.nickname }}
-                            </h2>
-                            <div v-if="!isLoggedIn">
-                                <div class="flex flex-row gap-1 justify-center align-center">
-                                    <router-link to="/register" class="text-blue-500"
+                            <!-- 头像部分 -->
+                            <div class="relative group cursor-pointer" @click="goToProfile">
+                                <div
+                                    class="absolute -inset-0.5 bg-linear-to-r from-orange-400 to-pink-500 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"
+                                ></div>
+                                <img
+                                    :src="user.avatar"
+                                    :alt="user.nickname"
+                                    class="relative rounded-full bg-gray-100 object-cover w-20 h-20 border-2 border-white shadow-sm"
+                                />
+                            </div>
+
+                            <!-- 用户名/欢迎语 -->
+                            <div class="text-center cursor-pointer" @click="goToProfile">
+                                <h2 class="text-lg font-bold text-gray-800 mb-1">
+                                    Hi, {{ user.nickname }}
+                                </h2>
+                                <p class="text-xs text-gray-400">欢迎来到在线商城</p>
+                            </div>
+
+                            <!-- 登录/注册状态 -->
+                            <div v-if="!isLoggedIn" class="w-full space-y-4">
+                                <div class="flex justify-center gap-4 text-sm">
+                                    <router-link
+                                        to="/register"
+                                        class="text-gray-600 hover:text-orange-500 transition-colors"
                                         >注册</router-link
                                     >
-                                    <router-link to="/openStore" class="text-blue-500"
+                                    <span class="text-gray-300">|</span>
+                                    <router-link
+                                        to="/openStore"
+                                        class="text-gray-600 hover:text-orange-500 transition-colors"
                                         >开店</router-link
                                     >
                                 </div>
-                                <h3>还没有登录请先登录</h3>
-                                <p class="text-gray-500/50">更懂你的搜索和推荐</p>
                                 <el-button
                                     type="primary"
-                                    class="w-full mb-5 h-5"
-                                    size="large"
+                                    class="w-full bg-orange-500! border-orange-500! hover:bg-orange-600! rounded-xl! h-10! font-bold shadow-lg shadow-orange-200"
                                     @click="goToLogin"
                                 >
                                     立即登录
                                 </el-button>
                             </div>
-                            <div v-else class="w-full mb-5 flex justify-center items-center">
-                                <p class="text-gray-600">
-                                    欢迎回来，<strong>{{ user.nickname }}</strong>
-                                </p>
-                            </div>
-                            <div class="flex flex-row gap-4 align-center justify-around w-full">
-                                <div class="icon-item cursor-pointer" @click="goToCart">
-                                    <el-icon :size="30">
-                                        <ShoppingCart />
-                                    </el-icon>
-                                    <p>购物车</p>
-                                </div>
-                                <div class="icon-item cursor-pointer" @click="goToFavorites">
-                                    <el-icon :size="30">
-                                        <collection />
-                                    </el-icon>
-                                    <p>收藏</p>
-                                </div>
 
-                                <div class="icon-item cursor-pointer" @click="goToAddress">
-                                    <el-icon :size="30">
-                                        <location />
-                                    </el-icon>
-                                    <p>地址</p>
+                            <div v-else class="w-full py-2 bg-orange-50 rounded-xl text-center">
+                                <span class="text-sm text-orange-600 font-medium">
+                                    尊贵的会员，欢迎回来
+                                </span>
+                            </div>
+
+                            <!-- 功能入口 -->
+                            <div class="grid grid-cols-3 gap-2 w-full pt-4 border-t border-gray-50">
+                                <div
+                                    class="flex flex-col items-center gap-2 cursor-pointer group"
+                                    @click="goToOrders"
+                                >
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all"
+                                    >
+                                        <el-icon :size="24"><Tickets /></el-icon>
+                                    </div>
+                                    <span class="text-xs text-gray-600 group-hover:text-orange-500"
+                                        >我的订单</span
+                                    >
+                                </div>
+                                <div
+                                    class="flex flex-col items-center gap-2 cursor-pointer group"
+                                    @click="goToFavorites"
+                                >
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all"
+                                    >
+                                        <el-icon :size="24"><Star /></el-icon>
+                                    </div>
+                                    <span class="text-xs text-gray-600 group-hover:text-blue-500"
+                                        >我的收藏</span
+                                    >
+                                </div>
+                                <div
+                                    class="flex flex-col items-center gap-2 cursor-pointer group"
+                                    @click="goToAddress"
+                                >
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all"
+                                    >
+                                        <el-icon :size="24"><Location /></el-icon>
+                                    </div>
+                                    <span class="text-xs text-gray-600 group-hover:text-green-500"
+                                        >收货地址</span
+                                    >
                                 </div>
                             </div>
                         </div>
                     </el-aside>
                 </el-container>
 
-                <!-- 猜你喜欢 -->
-                <div class="mt-6">
+                <!-- <div class="mt-6">
                     <GuessYouLike :title="'猜你喜欢'" :items="likedItems" />
-                </div>
+                </div> -->
 
                 <!-- 分类商品展示组件 -->
                 <div class="mt-6" v-for="cat in topCategories" :key="cat.id">
                     <CategoryProducts
-                        :category-title="cat.text"
+                        :category-title="cat.name"
                         :category-id="cat.id"
-                        :products="categoryProductsMap[cat.id] || []"
+                        :tabs="categoryTabsMap[cat.id] || []"
+                        :goodsList="
+                            categoryProductsMap[cat.id]?.[categoryActiveTabMap[cat.id]] || []
+                        "
+                        :active-tab="categoryActiveTabMap[cat.id]"
+                        @product-click="(goodsId, storeId) => handleGoodsClick(goodsId)"
+                        @tab-change="(tabId) => handleTabChange(cat.id, tabId)"
+                        @view-more="(categryName) => handleViewMore(categryName)"
                     />
                 </div>
             </div>
@@ -107,6 +151,7 @@
     import {
         fetchBanner,
         fetchCategory,
+        fetchProductsByCategory,
         type BannerItem,
         type CategoryItem,
         type User,
@@ -114,14 +159,13 @@
     import BannerCarousel from '@/components/banner/BannerCarousel.vue'
     import CategorySidebar from './model/CategorySidebar.vue'
     import Header from '@/views/home/model/Header.vue'
-    import GuessYouLike from '@/views/home/model/GuessYouLike.vue'
     import CategoryProducts from '@/views/home/model/CategoryProducts.vue'
     import Footer from '@/views/home/model/Footer.vue'
     import { useUserStore } from '@/stores/user'
     import { onMounted, ref, computed, watch } from 'vue'
     import { useRouter } from 'vue-router'
-    import { ShoppingCart } from '@element-plus/icons-vue'
-    import type { ProductItem } from '@/api/goods'
+    import { Tickets, Star, Location } from '@element-plus/icons-vue'
+    import type { GoodsItem } from '@/api/goods'
 
     const banners = ref<BannerItem[]>([])
     const router = useRouter()
@@ -132,38 +176,14 @@
 
     const categories = ref<CategoryItem[]>([])
 
-    // 新增：顶级分类和分类商品映射
+    // 顶级分类
     const topCategories = ref<CategoryItem[]>([])
-    const categoryProductsMap = ref<Record<string, ProductItem[]>>({})
-
-    // 猜你喜欢保持不变
-    const likedItems = ref<ProductItem[]>([
-        {
-            id: 1,
-            title: '寻常风格女装 休闲外套',
-            img: 'https://tse2.mm.bing.net/th/id/OIP.YtiN-hpBNBdEAQq0oYN_vAHaD-?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3',
-            price: '￥129',
-        },
-        {
-            id: 2,
-            title: '寻常风格女装 休闲外套',
-            img: 'https://tse2.mm.bing.net/th/id/OIP.YtiN-hpBNBdEAQq0oYN_vAHaD-?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3',
-            price: '￥129',
-        },
-        {
-            id: 3,
-            title: '寻常风格女装 休闲外套',
-            img: 'https://tse2.mm.bing.net/th/id/OIP.YtiN-hpBNBdEAQq0oYN_vAHaD-?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3',
-            price: '￥129',
-        },
-
-        {
-            id: 4,
-            title: '寻常风格女装 休闲外套',
-            img: 'https://tse2.mm.bing.net/th/id/OIP.YtiN-hpBNBdEAQq0oYN_vAHaD-?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3',
-            price: '￥129',
-        },
-    ])
+    // 每个顶级分类的二级分类
+    const categoryTabsMap = ref<Record<string, { id: string; name: string }[]>>({})
+    // 每个顶级分类当前激活的tab
+    const categoryActiveTabMap = ref<Record<string, string>>({})
+    // 每个分类每个tab对应的商品列表
+    const categoryProductsMap = ref<Record<string, Record<string, GoodsItem[]>>>({})
 
     // 异步加载猜你喜欢（示例），目前暂不调用（已在 onMounted 注释掉）
     // const loadLiked = async () => {
@@ -180,7 +200,6 @@
     const user = computed<User>(() => {
         return {
             id: userStore.id ? parseInt(userStore.id) : 0,
-            // 优先使用后端返回的 nickname 字段
             nickname: userStore.nickname || 'Guest',
             avatar: userStore.avatar || '/default-avatar.png',
         }
@@ -190,22 +209,34 @@
         return !!userStore.token || !!userStore.id
     })
 
-    // 新增：加载分类并为每个顶级分类加载商品
-    import { fetchProductsByCategory } from '@/api/home'
-
     const loadCategoryAndProducts = async () => {
         const res = await fetchCategory()
         categories.value = res.data
-        console.log(res.data)
         // 过滤出所有 level === 1 的顶级分类
         topCategories.value = categories.value.filter((cat) => cat.level === 1)
-        // 为每个顶级分类请求商品
+
+        // 为每个顶级分类找出二级分类
         for (const cat of topCategories.value) {
-            const prodRes = await fetchProductsByCategory(cat.id, 10)
-            categoryProductsMap.value[cat.id] = prodRes.data
+            const subCats = categories.value.filter((c) => c.parentId === cat.id && c.level === 2)
+            categoryTabsMap.value[cat.id] = subCats
+            // 默认激活第一个tab
+            const firstTab = subCats[0]
+            if (firstTab) {
+                categoryActiveTabMap.value[cat.id] = firstTab.id
+                loadProducts(cat.id, firstTab.id)
+            }
         }
-        console.log(topCategories.value)
-        console.log(categoryProductsMap.value)
+        console.log('顶级分类直接子类', categoryTabsMap)
+        console.log('顶级分类：', topCategories.value)
+        console.log('所有分类：', categories.value)
+    }
+
+    const loadProducts = async (categoryId: string, tabId: string) => {
+        const res = await fetchProductsByCategory(tabId)
+        if (!categoryProductsMap.value[categoryId]) {
+            categoryProductsMap.value[categoryId] = {}
+        }
+        categoryProductsMap.value[categoryId][tabId] = res.data || []
     }
 
     watch(
@@ -226,16 +257,44 @@
         router.push('/auth/login')
     }
 
-    const goToCart = () => {
-        router.push({ name: 'Cart' }).catch(() => {})
+    const goToProfile = () => {
+        router.push({ name: 'profile' }).catch(() => {})
     }
 
-    const goToAddress = () => {
-        router.push({ name: 'Address' }).catch(() => {})
+    const goToOrders = () => {
+        router.push({ name: 'profile', query: { tab: 'orders' } }).catch(() => {})
     }
 
     const goToFavorites = () => {
-        router.push({ name: 'Favorites' }).catch(() => {})
+        router.push({ name: 'profile', query: { tab: 'favorites' } }).catch(() => {})
+    }
+
+    const goToAddress = () => {
+        router.push({ name: 'profile', query: { tab: 'address' } }).catch(() => {})
+    }
+
+    // 来自 CategorySidebar 的选择回调：跳转到搜索页并带上 categoryId
+    const handleCategorySelect = (payload: { id: string; name: string }) => {
+        console.log(payload)
+        const { id, name } = payload
+        // router.push({ path: '/search', query: { categoryId: id, keyword: name } })
+        router.push({ name: 'Search', query: { keyword: name } })
+    }
+
+    function handleGoodsClick(goodsId: string) {
+        router.push({
+            name: 'GoodsDetail',
+            params: { goodsId },
+        })
+    }
+
+    function handleTabChange(categoryId: string, tabId: string) {
+        categoryActiveTabMap.value[categoryId] = tabId
+        loadProducts(categoryId, tabId)
+    }
+
+    function handleViewMore(categoryName: string) {
+        router.push({ name: 'Search', query: { keyword: categoryName } })
     }
 
     onMounted(() => {

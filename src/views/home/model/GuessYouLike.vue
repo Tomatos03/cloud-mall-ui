@@ -37,63 +37,63 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import type { ProductItem } from '@/api/goods'
+    import { computed } from 'vue'
+    import { useRouter } from 'vue-router'
+    import type { GoodsItem } from '@/api/goods'
 
-const props = defineProps<{
-    title?: string
-    items?: ProductItem[]
-}>()
+    const props = defineProps<{
+        title?: string
+        items?: GoodsItem[]
+    }>()
 
-const router = useRouter()
-const itemsComputed = computed(() => props.items || [])
+    const router = useRouter()
+    const itemsComputed = computed(() => props.items || [])
 
-const goToProduct = (productId: number) => {
-    router.push(`/product/${productId}`)
-}
+    const goToProduct = (productId: number) => {
+        router.push(`/product/${productId}`)
+    }
 </script>
 
 <style scoped>
-.products-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
-}
-
-.product-card {
-    min-height: 280px;
-}
-
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-/* 响应式设计 */
-@media (max-width: 1400px) {
     .products-grid {
-        grid-template-columns: repeat(4, 1fr);
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
     }
-}
 
-@media (max-width: 1024px) {
-    .products-grid {
-        grid-template-columns: repeat(3, 1fr);
+    .product-card {
+        min-height: 280px;
     }
-}
 
-@media (max-width: 768px) {
-    .products-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
-}
 
-@media (max-width: 480px) {
-    .products-grid {
-        grid-template-columns: repeat(1, 1fr);
+    /* 响应式设计 */
+    @media (max-width: 1400px) {
+        .products-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
     }
-}
+
+    @media (max-width: 1024px) {
+        .products-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .products-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .products-grid {
+            grid-template-columns: repeat(1, 1fr);
+        }
+    }
 </style>

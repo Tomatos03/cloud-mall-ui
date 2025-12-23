@@ -20,19 +20,22 @@ const router = createRouter({
             component: () => import('@/views/goods/index.vue'),
         },
         {
-            path: '/goods/:id',
+            path: '/goods/:goodsId',
             name: 'GoodsDetail',
             component: () => import('@/views/goods/index.vue'),
         },
         {
-            path: '/address',
-            name: 'Address',
-            component: () => import('@/views/address/index.vue'),
+            path: '/profile',
+            name: 'profile',
+            component: () => import('@/views/profiles/index.vue'),
         },
         {
-            path: '/order',
-            name: 'Order',
-            component: () => import('@/views/order/index.vue'),
+            path: '/address',
+            redirect: '/profile?tab=address',
+        },
+        {
+            path: '/orders',
+            redirect: '/profile?tab=orders',
         },
         {
             path: '/404',
@@ -46,14 +49,13 @@ const router = createRouter({
             // mode: optional path param, supports 'login' or 'register'
         },
         {
-            path: '/store/:id',
+            path: '/store/:storeId',
             name: 'Store',
             component: () => import('@/views/store/index.vue'),
         },
         {
             path: '/favorites',
-            name: 'Favorites',
-            component: () => import('@/views/favorite/index.vue'),
+            redirect: '/profile?tab=favorites',
         },
         {
             path: '/cart',

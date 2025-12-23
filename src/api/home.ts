@@ -19,7 +19,7 @@ export interface User {
 
 export interface CategoryItem {
     id: string
-    text: string
+    name: string
     level: number
     parentId: string
 }
@@ -50,7 +50,8 @@ export interface ProductItem {
 
 // 获取某分类及其所有子分类下的商品
 export function fetchProductsByCategory(categoryId: string, limit = 10) {
-    return http.get<ProductItem[]>('/product/listByCategory', {
-        params: { categoryId, limit }
+    return http.get<ProductItem[]>('/goods/listByCategory', {
+        categoryId,
+        limit,
     })
 }
