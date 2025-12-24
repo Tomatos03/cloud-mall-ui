@@ -43,7 +43,7 @@
                     <!-- 按商店分组显示 -->
                     <div
                         v-for="store in groupedItems"
-                        :key="store.storeId"
+                        :key="store.shopId"
                         class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden"
                     >
                         <!-- 商店头部 -->
@@ -55,7 +55,7 @@
                             >
                                 <el-icon :size="18"><Shop /></el-icon>
                             </div>
-                            <span class="font-bold text-gray-800">{{ store.storeName }}</span>
+                            <span class="font-bold text-gray-800">{{ store.shopName }}</span>
                         </div>
 
                         <!-- 商品列表 -->
@@ -78,8 +78,8 @@
                                         class="relative w-24 h-24 shrink-0 overflow-hidden rounded-2xl bg-gray-50 border border-gray-100"
                                     >
                                         <img
-                                            :src="item.img"
-                                            :alt="item.title"
+                                            :src="item.mainImg"
+                                            :alt="item.goodsName"
                                             class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
                                         />
                                     </div>
@@ -89,33 +89,22 @@
                                         <h3
                                             class="text-base font-bold text-gray-800 mb-2 truncate group-hover:text-orange-500 transition-colors"
                                         >
-                                            {{ item.title }}
+                                            {{ item.goodsName }}
                                         </h3>
                                         <div
-                                            v-if="item.attributes"
+                                            v-if="item.options && item.options.length > 0"
                                             class="flex flex-wrap gap-2 mb-2"
                                         >
                                             <span
-                                                v-if="item.attributes.color"
+                                                v-for="(opt, idx) in item.options"
+                                                :key="idx"
                                                 class="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-500"
                                             >
-                                                颜色: {{ item.attributes.color }}
-                                            </span>
-                                            <span
-                                                v-if="item.attributes.size"
-                                                class="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-500"
-                                            >
-                                                尺寸: {{ item.attributes.size }}
-                                            </span>
-                                            <span
-                                                v-if="item.attributes.spec"
-                                                class="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-500"
-                                            >
-                                                规格: {{ item.attributes.spec }}
+                                                {{ opt }}
                                             </span>
                                         </div>
                                         <div class="text-xs text-gray-400">
-                                            库存: {{ item.stock }} 件
+                                            库存: {{ item.inventory }} 件
                                         </div>
                                     </div>
 
@@ -123,7 +112,7 @@
                                     <div class="text-right min-w-25">
                                         <div class="text-xl font-black text-orange-500">
                                             <span class="text-xs font-bold mr-0.5">￥</span
-                                            >{{ (item.price_cents / 100).toFixed(2) }}
+                                            >{{ (item.price / 100).toFixed(2) }}
                                         </div>
                                     </div>
 
@@ -131,7 +120,7 @@
                                     <div class="flex items-center bg-gray-100 rounded-xl p-1">
                                         <button
                                             class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all disabled:opacity-30 disabled:hover:bg-transparent"
-                                            @click="decreaseQuantity(item)"
+                                            @click="updateQuantity(item, item.quantity - 1)"
                                             :disabled="item.quantity <= 1"
                                         >
                                             <el-icon :size="14"><Minus /></el-icon>
@@ -142,8 +131,8 @@
                                         >
                                         <button
                                             class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all disabled:opacity-30 disabled:hover:bg-transparent"
-                                            @click="increaseQuantity(item)"
-                                            :disabled="item.quantity >= item.stock"
+                                            @click="updateQuantity(item, item.quantity + 1)"
+                                            :disabled="item.quantity >= item.inventory"
                                         >
                                             <el-icon :size="14"><Plus /></el-icon>
                                         </button>
@@ -244,121 +233,114 @@
     import Header from '@/views/home/model/Header.vue'
     import {
         fetchCartItems,
-        updateCartItemQuantity,
+        updateCartItem,
         removeCartItem,
         removeCartItems,
-        toggleCartItemSelected,
-        toggleAllCartItems,
+        updateCartBatch,
         type CartItem,
     } from '@/api/cart'
 
     const router = useRouter()
     const cartItems = ref<CartItem[]>([])
 
+    // 按店铺分组
     const groupedItems = computed(() => {
         const groups = new Map()
         cartItems.value.forEach((item) => {
-            if (!groups.has(item.storeId)) {
-                groups.set(item.storeId, {
-                    storeId: item.storeId,
-                    storeName: item.storeName,
+            if (!groups.has(item.shopId)) {
+                groups.set(item.shopId, {
+                    shopId: item.shopId,
+                    shopName: item.shopName,
                     items: [],
                 })
             }
-            groups.get(item.storeId).items.push(item)
+            groups.get(item.shopId).items.push(item)
         })
         return Array.from(groups.values())
     })
 
+    // 选中项
     const selectedItems = computed(() => {
         return cartItems.value.filter((item) => item.selected)
     })
 
+    // 全选状态控制
     const isAllSelected = computed({
         get: () => cartItems.value.length > 0 && cartItems.value.every((item) => item.selected),
-        set: () => {},
+        set: (val) => val,
     })
 
+    // 总价计算
     const totalSelectedPrice = computed(() => {
         return selectedItems.value.reduce((total, item) => {
-            return total + item.price_cents * item.quantity
+            return total + item.price * item.quantity
         }, 0)
     })
 
+    // 加载数据
     const loadCartItems = async () => {
         try {
             const res = await fetchCartItems()
             cartItems.value = res.data
         } catch (error) {
             console.error('加载购物车失败:', error)
-            ElMessage.error('加载购物车失败')
         }
     }
 
-    const increaseQuantity = async (item: CartItem) => {
-        if (item.quantity >= item.stock) return
+    // 更新数量
+    const updateQuantity = async (item: CartItem, newQty: number) => {
+        if (newQty < 1 || newQty > item.inventory) return
         try {
-            await updateCartItemQuantity({
-                cartItemId: item.id,
-                quantity: item.quantity + 1,
-            })
-            item.quantity++
+            await updateCartItem(item.id, { quantity: newQty })
+            item.quantity = newQty
         } catch (error) {
             ElMessage.error('更新失败')
         }
     }
 
-    const decreaseQuantity = async (item: CartItem) => {
-        if (item.quantity <= 1) return
-        try {
-            await updateCartItemQuantity({
-                cartItemId: item.id,
-                quantity: item.quantity - 1,
-            })
-            item.quantity--
-        } catch (error) {
-            ElMessage.error('更新失败')
-        }
-    }
-
+    // 切换单项选中状态
     const handleItemSelect = async (item: CartItem) => {
         try {
-            await toggleCartItemSelected(item.id, item.selected)
+            await updateCartItem(item.id, { selected: item.selected })
         } catch (error) {
             item.selected = !item.selected
             ElMessage.error('更新失败')
         }
     }
 
-    const handleSelectAll = async (selected: boolean) => {
+    // 全选/取消全选
+    const handleSelectAll = async (selected: any) => {
+        const isSelected = !!selected
         try {
-            await toggleAllCartItems(selected)
+            await updateCartBatch({ selected: isSelected })
             cartItems.value.forEach((item) => {
-                item.selected = selected
+                item.selected = isSelected
             })
         } catch (error) {
             ElMessage.error('操作失败')
         }
     }
 
+    // 删除单项
     const handleRemoveItem = async (item: CartItem) => {
         try {
             await ElMessageBox.confirm(`确定要从购物车中移除该商品吗？`, '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning',
-                buttonSize: 'default',
             })
             await removeCartItem(item.id)
             cartItems.value = cartItems.value.filter((i) => i.id !== item.id)
             ElMessage.success('已移除')
         } catch {
-            // cancel
+            // 取消
         }
     }
 
+    // 批量删除
     const handleBatchDelete = async () => {
         if (selectedItems.value.length === 0) return
+        const ids = selectedItems.value.map((item) => item.id)
         try {
             await ElMessageBox.confirm(
                 `确定要删除选中的 ${selectedItems.value.length} 件商品吗？`,
@@ -367,18 +349,17 @@
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning',
-                    buttonSize: 'default',
                 },
             )
-            const selectedIds = selectedItems.value.map((item) => item.id)
-            await removeCartItems(selectedIds)
-            cartItems.value = cartItems.value.filter((item) => !selectedIds.includes(item.id))
+            await removeCartItems(ids)
+            cartItems.value = cartItems.value.filter((item) => !ids.includes(item.id))
             ElMessage.success('删除成功')
         } catch {
-            // cancel
+            // 取消
         }
     }
 
+    // 结算
     const handleCheckout = () => {
         if (selectedItems.value.length === 0) {
             ElMessage.warning('请选择要结算的商品')
@@ -390,7 +371,7 @@
                 items: JSON.stringify(
                     selectedItems.value.map((item) => ({
                         cartItemId: item.id,
-                        productId: item.productId,
+                        goodsId: item.goodsId,
                         quantity: item.quantity,
                     })),
                 ),
@@ -412,27 +393,29 @@
         width: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: #e5e7eb;
+        background: #e5e7eb;
         border-radius: 10px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-        background-color: transparent;
+        background: transparent;
     }
 
-    /* 复选框橙色定制 */
     :deep(.custom-checkbox.el-checkbox) {
-        --el-checkbox-checked-bg-color: #f97316;
-        --el-checkbox-checked-border-color: #f97316;
-        --el-checkbox-input-border-color-hover: #f97316;
+        height: auto;
     }
     :deep(.custom-checkbox .el-checkbox__inner) {
-        border-radius: 6px;
         width: 20px;
         height: 20px;
+        border-radius: 6px;
+        border-color: #e5e7eb;
     }
     :deep(.custom-checkbox .el-checkbox__inner::after) {
         width: 6px;
         height: 10px;
         left: 6px;
+    }
+    :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+        background-color: #f97316;
+        border-color: #f97316;
     }
 </style>

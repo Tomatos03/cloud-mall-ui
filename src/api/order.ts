@@ -122,6 +122,19 @@ export function applyRefund(orderNo: string, reason: string) {
 }
 
 /**
+ * 创建订单
+ */
+export function createOrder(data: {
+    goodsId: string
+    addressId?: number
+    option?: string
+    quantity: number
+    amount: number
+}) {
+    return http.post<{ orderNo: string }>('/order/create', data)
+}
+
+/**
  * 支付订单
  */
 export function payOrder(orderNo: string, paymentMethod: string) {

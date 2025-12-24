@@ -67,31 +67,39 @@
 
                         <!-- 商品信息区域 -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                            <!-- 左侧：图片展示区 -->
+                            <!-- 左侧:图片展示区 -->
                             <div class="space-y-6">
                                 <!-- 主图 -->
                                 <div
                                     class="bg-gray-50 rounded-2xl overflow-hidden aspect-square flex items-center justify-center border border-gray-100 group"
                                 >
                                     <img
-                                        :src="currentImage"
+                                        v-if="imageList.length > 0"
+                                        :src="imageList[activeIndex]"
                                         alt="商品主图"
                                         class="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
                                     />
+                                    <div
+                                        v-else
+                                        class="flex flex-col items-center justify-center text-gray-400"
+                                    >
+                                        <el-icon class="text-5xl mb-3"><Picture /></el-icon>
+                                        <p class="text-sm">暂时没有图片</p>
+                                    </div>
                                 </div>
 
                                 <!-- 缩略图列表 -->
-                                <div class="flex gap-3 overflow-x-auto pb-2">
+                                <div v-if="imageList.length > 0" class="flex gap-3 overflow-x-auto p-1 pb-2">
                                     <div
                                         v-for="(img, index) in imageList"
                                         :key="index"
-                                        class="w-20 h-20 shrink-0 border-2 rounded-xl overflow-hidden cursor-pointer transition-all duration-200"
+                                        class="w-20 h-20 shrink-0 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 bg-gray-50"
                                         :class="
-                                            currentImage === img
-                                                ? 'border-orange-500 shadow-md shadow-orange-100'
-                                                : 'border-transparent hover:border-orange-200'
+                                            activeIndex === index
+                                                ? 'ring-2 ring-orange-500 shadow-md shadow-orange-100'
+                                                : 'hover:ring-2 hover:ring-orange-200'
                                         "
-                                        @click="currentImage = img"
+                                        @click="activeIndex = index"
                                     >
                                         <img
                                             :src="img"
@@ -144,7 +152,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- 商品规格选择 -->
+                                    <!-- 商品规格选择 (已简化为数量选择) -->
                                     <div class="space-y-5">
                                         <div class="flex items-center">
                                             <span class="text-gray-500 w-20 font-medium"
@@ -154,7 +162,9 @@
                                                 class="flex-1 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:border-orange-200 transition-colors group"
                                                 @click="addressVisible = true"
                                             >
-                                                <div class="flex items-center gap-2 overflow-hidden">
+                                                <div
+                                                    class="flex items-center gap-2 overflow-hidden"
+                                                >
                                                     <el-icon class="text-orange-500 shrink-0"
                                                         ><Location
                                                     /></el-icon>
@@ -177,20 +187,14 @@
                                         </div>
                                         <div class="flex items-center">
                                             <span class="text-gray-500 w-20 font-medium"
-                                                >选择规格</span
+                                                >购买数量</span
                                             >
-                                            <el-select
-                                                v-model="selectedOption"
-                                                placeholder="请选择"
-                                                class="flex-1 custom-select"
-                                            >
-                                                <el-option
-                                                    v-for="option in product.options"
-                                                    :key="option"
-                                                    :label="option"
-                                                    :value="option"
-                                                />
-                                            </el-select>
+                                            <el-input-number
+                                                v-model="quantity"
+                                                :min="1"
+                                                :max="product.inventory || 99"
+                                                class="custom-number-input"
+                                            />
                                         </div>
                                         <div class="flex gap-8 text-sm pt-2">
                                             <div class="flex flex-col">
@@ -220,6 +224,7 @@
                                     <el-button
                                         type="danger"
                                         class="flex-1! bg-orange-600! border-orange-600! hover:bg-orange-700! rounded-xl! h-12! font-bold text-lg shadow-lg shadow-orange-100"
+                                        :loading="buyLoading"
                                         @click="handleBuyNow"
                                     >
                                         立即购买
@@ -233,10 +238,13 @@
                                     </el-button>
                                     <el-button
                                         class="rounded-xl! h-12! px-6 hover:text-orange-500! hover:border-orange-200!"
+                                        :class="{
+                                            'text-orange-500! border-orange-200!': isFavorite,
+                                        }"
                                         :icon="Star"
                                         @click="handleFavorite"
                                     >
-                                        收藏
+                                        {{ isFavorite ? '已收藏' : '收藏' }}
                                     </el-button>
                                 </div>
                             </div>
@@ -250,22 +258,19 @@
                         <el-tabs v-model="activeTab" class="custom-tabs">
                             <el-tab-pane label="商品详情" name="detail">
                                 <div class="p-8">
-                                    <div class="prose max-w-none">
-                                        <p
-                                            class="text-gray-700 leading-loose whitespace-pre-wrap text-lg"
-                                        >
-                                            {{ product.description || product.goodsInfo }}
+                                    <!-- 商品描述 - 支持 HTML 内容 -->
+                                    <div 
+                                        v-if="product.description"
+                                        class="prose max-w-none text-gray-700 leading-loose"
+                                        v-html="product.description"
+                                    >
+                                    </div>
+                                    <div v-else class="prose max-w-none">
+                                        <p class="text-gray-700 leading-loose text-lg">
+                                            {{ product.goodsInfo || '暂无商品详情' }}
                                         </p>
                                     </div>
-                                    <!-- 详情图展示 -->
-                                    <div class="mt-8 space-y-4">
-                                        <img
-                                            v-for="(img, idx) in imageList"
-                                            :key="idx"
-                                            :src="img"
-                                            class="w-full rounded-xl"
-                                        />
-                                    </div>
+
                                 </div>
                             </el-tab-pane>
                             <el-tab-pane :label="`评价 (${commentsTotal || 0})`" name="comments">
@@ -341,10 +346,10 @@
         <PaymentModal
             v-if="product"
             v-model:visible="paymentVisible"
-            :amount="product.price"
-            :goods-id="goodsId"
-            :address-id="selectedAddress?.id"
-            :selected-option="selectedOption"
+            :amount="totalAmount"
+            :order-no="currentOrderNo"
+            :quantity="quantity"
+            @success="handlePaymentSuccess"
         />
 
         <!-- 地址选择弹窗 -->
@@ -365,24 +370,36 @@
         Warning,
         Location,
         ArrowRight,
+        Picture,
     } from '@element-plus/icons-vue'
     import Header from '@/views/home/model/Header.vue'
     import AddressSelector from './model/AddressSelector.vue'
     import { fetchAddressList, type Address } from '@/api/address'
     import type { GoodsDetail, GoodsComment } from '@/api/goods'
     import { fetchGoodsDetail, fetchGoodsComments } from '@/api/goods'
+    import { createOrder } from '@/api/order'
+    import { addFavorite, removeFavorite, checkFavoriteStatus } from '@/api/favorite'
     import { useRoute, useRouter } from 'vue-router'
     import PaymentModal from './model/PaymentModal.vue'
 
     const loading = ref(true)
+    const buyLoading = ref(false)
     const product = ref<GoodsDetail | null>(null)
-    const currentImage = ref('')
+    const activeIndex = ref(0)
     const activeTab = ref('detail')
-    const selectedOption = ref('')
+    const quantity = ref(1)
     const goodsId = ref<string>('')
     const paymentVisible = ref(false)
     const addressVisible = ref(false)
     const selectedAddress = ref<Address | null>(null)
+    const currentOrderNo = ref('')
+    const isFavorite = ref(false)
+    const favoriteId = ref<string | null>(null)
+
+    const totalAmount = computed(() => {
+        if (!product.value) return 0
+        return product.value.price * quantity.value
+    })
 
     const loadDefaultAddress = async () => {
         try {
@@ -401,8 +418,14 @@
     const imageList = computed(() => {
         if (!product.value) return [] as string[]
         const imgs: string[] = []
-        if (product.value.mainImg) imgs.push(product.value.mainImg)
-        if (product.value.subImg && product.value.subImg.length) imgs.push(...product.value.subImg)
+        // 确保主图在第一位
+        if (product.value.mainImg) {
+            imgs.push(product.value.mainImg)
+        }
+        // 添加所有子图,不去重
+        if (product.value.subImg && Array.isArray(product.value.subImg)) {
+            imgs.push(...product.value.subImg)
+        }
         return imgs
     })
 
@@ -474,47 +497,94 @@
                 return
             }
 
-            // 后端返回的字段已与前端一致，直接使用后端数据（删除不必要的映射）
-            const backend = data as GoodsDetail
+            product.value = data as GoodsDetail
 
-            product.value = backend
-
-            // 设置默认展示图与规格
-            const imgs = imageList.value
-            currentImage.value =
-                imgs && imgs.length ? (imgs[0] ?? '') : (product.value!.mainImg ?? '')
-            selectedOption.value =
-                product.value!.options && product.value!.options.length
-                    ? (product.value!.options[0] ?? '')
-                    : ''
+            // 设置默认展示图索引为 0
+            activeIndex.value = 0
         } catch (error) {
             console.error('加载商品详情失败:', error)
             product.value = null
         } finally {
             loading.value = false
         }
+
+        // 检查收藏状态
+        if (goodsId.value) {
+            try {
+                const res = await checkFavoriteStatus(goodsId.value)
+                isFavorite.value = res.data.isFavorite
+                favoriteId.value = res.data.favoriteId
+            } catch (error) {
+                console.error('检查收藏状态失败:', error)
+                isFavorite.value = false
+                favoriteId.value = null
+            }
+        }
     }
 
-    const handleBuyNow = () => {
+    const handlePaymentSuccess = () => {
+        paymentVisible.value = false
+        router.push({ path: '/profile', query: { tab: 'orders' } })
+    }
+
+    const handleBuyNow = async () => {
         if (!selectedAddress.value) {
             ElMessage.warning('请选择收货地址')
             addressVisible.value = true
             return
         }
-        if (!selectedOption.value) {
-            ElMessage.warning('请选择商品规格')
-            return
-        }
-        paymentVisible.value = true
-    }
 
+        buyLoading.value = true
+        try {
+            const res = await createOrder({
+                goodsId: goodsId.value,
+                addressId: selectedAddress.value.id,
+                quantity: quantity.value,
+                amount: totalAmount.value,
+            })
+            if (res && res.orderNo) {
+                currentOrderNo.value = res.orderNo
+                paymentVisible.value = true
+            }
+        } catch (error) {
+            console.error('创建订单失败:', error)
+        } finally {
+            buyLoading.value = false
+        }
+    }
 
     const handleAddToCart = () => {
         ElMessage.success('已加入购物车')
     }
 
-    const handleFavorite = () => {
-        ElMessage.success('已收藏')
+    const handleFavorite = async () => {
+        if (!goodsId.value || !product.value?.shopId) {
+            ElMessage.warning('商品信息加载中，请稍后再试')
+            return
+        }
+
+        try {
+            if (isFavorite.value) {
+                // 取消收藏：直接使用已保存的 favoriteId
+                if (favoriteId.value) {
+                    await removeFavorite(favoriteId.value)
+                    isFavorite.value = false
+                    favoriteId.value = null
+                    ElMessage.success('已取消收藏')
+                }
+            } else {
+                // 添加收藏
+                const res = await addFavorite(goodsId.value, product.value.shopId)
+                if (res.data) {
+                    isFavorite.value = true
+                    favoriteId.value = res.data.id
+                    ElMessage.success('收藏成功')
+                }
+            }
+        } catch (error) {
+            console.error('操作收藏失败:', error)
+            ElMessage.error('操作失败，请重试')
+        }
     }
 
     onMounted(() => {
@@ -525,22 +595,17 @@
 
 <style scoped>
     :deep(.el-header) {
-        padding: 0 !important;
-        height: auto !important;
+        background-color: white;
+        border-bottom: 1px solid #f1f5f9;
     }
 
     :deep(.el-main) {
         padding: 0;
     }
 
-    :deep(.custom-select .el-input__wrapper) {
+    :deep(.custom-number-input .el-input__wrapper) {
         border-radius: 12px;
-        padding: 4px 12px;
         box-shadow: 0 0 0 1px #f3f4f6 inset;
-    }
-
-    :deep(.custom-select .el-input__wrapper.is-focus) {
-        box-shadow: 0 0 0 1px #f97316 inset !important;
     }
 
     :deep(.custom-tabs .el-tabs__header) {
@@ -568,5 +633,18 @@
         background-color: #f97316;
         height: 3px;
         border-radius: 3px;
+    }
+
+    /* 商品详情富文本图片适配 */
+    :deep(.prose img) {
+        max-width: 100% !important;
+        height: auto !important;
+        border-radius: 12px;
+        display: block;
+        margin: 1.5rem auto;
+    }
+
+    :deep(.prose p) {
+        margin-bottom: 1rem;
     }
 </style>

@@ -19,6 +19,7 @@
                 placeholder="输入商品名称或订单号进行搜索"
                 clearable
                 class="flex-1 custom-input"
+                @keyup.enter="handleSearch"
             >
                 <template #prefix>
                     <el-icon class="text-gray-400">
@@ -37,7 +38,7 @@
         </div>
 
         <!-- 订单列表 -->
-        <div class="p-6">
+        <div class="p-6" v-loading="loading">
             <div v-if="orderList.length > 0" class="space-y-6">
                 <div
                     v-for="order in orderList"
@@ -93,7 +94,7 @@
                                     >
                                         {{ item.productName }}
                                     </h4>
-                                    <p class="text-gray-400 text-xs mt-1">规格：默认</p>
+                                    <p class="text-gray-400 text-xs mt-1">规格：{{ item.spec || '默认' }}</p>
                                 </div>
                                 <div class="text-right shrink-0">
                                     <div class="text-gray-900 font-medium">
@@ -178,6 +179,7 @@
                                         order.status === OrderStatus.PENDING_REVIEW
                                     "
                                     class="w-full! rounded-xl! hover:text-orange-500! hover:border-orange-200!"
+                                    @click="$router.push(`/order/detail/${order.orderNo}`)"
                                 >
                                     查看详情
                                 </el-button>
@@ -188,7 +190,7 @@
             </div>
 
             <!-- 空状态 -->
-            <div v-else class="flex flex-col items-center justify-center py-32">
+            <div v-else-if="!loading" class="flex flex-col items-center justify-center py-32">
                 <div
                     class="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center mb-6"
                 >
@@ -214,161 +216,36 @@
     import { ref, onMounted } from 'vue'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { Search, Document, User, Location, Phone } from '@element-plus/icons-vue'
-    import { OrderStatus, type Order } from '@/api/order'
-
-    const mockOrderList = ref<Order[]>([
-        {
-            id: 1,
-            orderNo: '20250911105742806926',
-            items: [
-                {
-                    id: 1,
-                    productName: '林氏薄暖智能恒温',
-                    productImage:
-                        'https://res.vmallres.com/pimages//uomcdn/CN/pms/202410/gbom/6942103126253/428_428_1728290612827mp.png',
-                    quantity: 1,
-                    price: 1499,
-                },
-            ],
-            totalPrice: 1499,
-            createTime: '2025-09-11 10:57:42',
-            status: OrderStatus.PENDING_PAYMENT,
-            statusText: '待支付',
-            receiver: '王宝宝',
-            address: 'HK林氏官方旗舰店 王宝宝',
-            phone: '13888888888',
-        },
-        {
-            id: 2,
-            orderNo: '20250907012951888714',
-            items: [
-                {
-                    id: 2,
-                    productName: 'Redmi Buds 6 降噪版',
-                    productImage:
-                        'https://cdn.cnbj1.fds.api.mi-img.com/nr-pub/202410281631_cf1e9e7df9dca6bfba2e4d0d0af3c3ad.png',
-                    quantity: 1,
-                    price: 139,
-                },
-            ],
-            totalPrice: 139,
-            createTime: '2025-09-07 20:29:51',
-            status: OrderStatus.PENDING_SHIPMENT,
-            statusText: '待发货',
-            receiver: '王宝宝',
-            address: '富士商店 王宝宝',
-            phone: '13888888888',
-        },
-        {
-            id: 3,
-            orderNo: '20250904419532384069',
-            items: [
-                {
-                    id: 3,
-                    productName: '风采异秀典雅职装外套',
-                    productImage:
-                        'https://img.alicdn.com/imgextra/i3/2215464672622/O1CN01qE9Z8K1PkNBvYjJHG_!!2215464672622.jpg',
-                    quantity: 3,
-                    price: 269,
-                },
-            ],
-            totalPrice: 807,
-            createTime: '2025-09-04 19:53:23',
-            status: OrderStatus.PENDING_REVIEW,
-            statusText: '待评价',
-            receiver: '王兰兰',
-            address: '优雅 KUNXI 王宝宝',
-            phone: '13888888888',
-        },
-        {
-            id: 4,
-            orderNo: '20250904194717872957',
-            items: [
-                {
-                    id: 4,
-                    productName: '林氏薄白智能恒温',
-                    productImage:
-                        'https://res.vmallres.com/pimages//uomcdn/CN/pms/202410/gbom/6942103126253/428_428_1728290613071mp.png',
-                    quantity: 2,
-                    price: 1499,
-                },
-            ],
-            totalPrice: 2998,
-            createTime: '2025-09-04 19:47:17',
-            status: OrderStatus.PENDING_REFUND,
-            statusText: '待退款',
-            receiver: '王宝宝',
-            address: 'HK林氏官方旗舰店 王宝宝',
-            phone: '13888888888',
-        },
-        {
-            id: 5,
-            orderNo: '20250904194717837143',
-            items: [
-                {
-                    id: 5,
-                    productName: '上太阳维度开车照射灯',
-                    productImage:
-                        'https://img.alicdn.com/imgextra/i2/2208857326233/O1CN01NqZ3nY1GvvXCYn8kJ_!!2208857326233.jpg',
-                    quantity: 1,
-                    price: 159,
-                },
-            ],
-            totalPrice: 159,
-            createTime: '2025-09-04 19:47:17',
-            status: OrderStatus.COMPLETED,
-            statusText: '已完成',
-            receiver: '王宝宝',
-            address: '富士商店 王宝宝',
-            phone: '13888888888',
-        },
-        {
-            id: 6,
-            orderNo: '20250904194636555335',
-            items: [
-                {
-                    id: 6,
-                    productName: '上太阳维度开车照射灯',
-                    productImage:
-                        'https://img.alicdn.com/imgextra/i2/2208857326233/O1CN01NqZ3nY1GvvXCYn8kJ_!!2208857326233.jpg',
-                    quantity: 1,
-                    price: 159,
-                },
-            ],
-            totalPrice: 159,
-            createTime: '2025-09-04 19:46:36',
-            status: OrderStatus.PENDING_SHIPMENT,
-            statusText: '待发货',
-            receiver: '王宝宝',
-            address: '富士商店 王宝宝',
-            phone: '13888888888',
-        },
-    ])
+    import { 
+        OrderStatus, 
+        type Order, 
+        fetchOrderList, 
+        payOrder, 
+        cancelOrder, 
+        confirmReceipt, 
+        applyRefund 
+    } from '@/api/order'
 
     const activeTab = ref('all')
     const searchKeyword = ref('')
     const orderList = ref<Order[]>([])
+    const loading = ref(false)
 
     const loadOrderList = async () => {
+        loading.value = true
         try {
-            let filteredList = [...mockOrderList.value]
-            if (activeTab.value !== 'all') {
-                filteredList = filteredList.filter((order) => order.status === activeTab.value)
+            const params = {
+                status: activeTab.value === 'all' ? undefined : activeTab.value as OrderStatus,
+                keyword: searchKeyword.value.trim() || undefined
             }
-            if (searchKeyword.value.trim()) {
-                const keyword = searchKeyword.value.trim().toLowerCase()
-                filteredList = filteredList.filter(
-                    (order) =>
-                        order.orderNo.toLowerCase().includes(keyword) ||
-                        order.items.some((item) =>
-                            item.productName.toLowerCase().includes(keyword),
-                        ),
-                )
-            }
-            orderList.value = filteredList
+            const res = await fetchOrderList(params)
+            // 假设 fetchOrderList 直接返回 Order[]
+            orderList.value = res
         } catch (error) {
             console.error('加载订单列表失败:', error)
             ElMessage.error('加载订单列表失败')
+        } finally {
+            loading.value = false
         }
     }
 
@@ -392,14 +269,14 @@
                 cancelButtonText: '取消',
                 type: 'info',
             })
-            const order = mockOrderList.value.find((o) => o.orderNo === orderNo)
-            if (order) {
-                order.status = OrderStatus.PENDING_SHIPMENT
-                order.statusText = '待发货'
-                await loadOrderList()
-                ElMessage.success('支付成功')
+            await payOrder(orderNo, 'alipay')
+            ElMessage.success('支付成功')
+            await loadOrderList()
+        } catch (error) {
+            if (error !== 'cancel') {
+                console.error('支付失败:', error)
             }
-        } catch (error) {}
+        }
     }
 
     const handleCancel = async (orderNo: string) => {
@@ -409,14 +286,14 @@
                 cancelButtonText: '取消',
                 type: 'warning',
             })
-            const order = mockOrderList.value.find((o) => o.orderNo === orderNo)
-            if (order) {
-                order.status = OrderStatus.CANCELLED
-                order.statusText = '已取消'
-                await loadOrderList()
-                ElMessage.success('取消成功')
+            await cancelOrder(orderNo)
+            ElMessage.success('取消成功')
+            await loadOrderList()
+        } catch (error) {
+            if (error !== 'cancel') {
+                console.error('取消失败:', error)
             }
-        } catch (error) {}
+        }
     }
 
     const handleConfirm = async (orderNo: string) => {
@@ -426,19 +303,19 @@
                 cancelButtonText: '取消',
                 type: 'success',
             })
-            const order = mockOrderList.value.find((o) => o.orderNo === orderNo)
-            if (order) {
-                order.status = OrderStatus.PENDING_REVIEW
-                order.statusText = '待评价'
-                await loadOrderList()
-                ElMessage.success('确认收货成功')
+            await confirmReceipt(orderNo)
+            ElMessage.success('确认收货成功')
+            await loadOrderList()
+        } catch (error) {
+            if (error !== 'cancel') {
+                console.error('确认收货失败:', error)
             }
-        } catch (error) {}
+        }
     }
 
     const handleRefund = async (orderNo: string) => {
         try {
-            await ElMessageBox.prompt('请输入退款原因', '申请退款', {
+            const { value: reason } = await ElMessageBox.prompt('请输入退款原因', '申请退款', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 inputPlaceholder: '请输入退款原因',
@@ -449,14 +326,14 @@
                     return true
                 },
             })
-            const order = mockOrderList.value.find((o) => o.orderNo === orderNo)
-            if (order) {
-                order.status = OrderStatus.PENDING_REFUND
-                order.statusText = '待退款'
-                await loadOrderList()
-                ElMessage.success('已提交退款申请')
+            await applyRefund(orderNo, reason)
+            ElMessage.success('已提交退款申请')
+            await loadOrderList()
+        } catch (error) {
+            if (error !== 'cancel') {
+                console.error('申请退款失败:', error)
             }
-        } catch (error) {}
+        }
     }
 
     const getStatusTagType = (status: OrderStatus) => {

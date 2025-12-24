@@ -23,9 +23,9 @@
                     class="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-gray-100 transition-all duration-300"
                 >
                     <!-- 商品图片 -->
-                    <div class="relative aspect-square overflow-hidden cursor-pointer" @click="goToProduct(item.id)">
+                    <div class="relative aspect-square overflow-hidden cursor-pointer" @click="goToProduct(item.goodsId)">
                         <el-image
-                            :src="item.img"
+                            :src="item.goodsImg"
                             fit="cover"
                             class="w-full h-full group-hover:scale-110 transition-transform duration-500"
                         >
@@ -51,26 +51,21 @@
                     <!-- 商品信息 -->
                     <div class="p-4">
                         <h3
-                            class="text-gray-800 font-bold text-sm line-clamp-2 mb-2 hover:text-orange-500 cursor-pointer transition-colors h-10"
-                            @click="goToProduct(item.id)"
+                            class="text-gray-800 font-bold text-sm line-clamp-2 mb-3 hover:text-orange-500 cursor-pointer transition-colors h-10"
+                            @click="goToProduct(item.goodsId)"
                         >
-                            {{ item.title }}
+                            {{ item.goodsTitle }}
                         </h3>
-                        <div class="flex items-center gap-2 mb-3">
-                            <el-tag size="small" effect="plain" class="border-gray-100! text-gray-400! rounded-md!">
-                                {{ item.storeName }}
-                            </el-tag>
-                        </div>
                         <div class="flex items-center justify-between">
                             <div class="text-lg font-black text-orange-600">
-                                <span class="text-xs">¥</span>{{ item.price }}
+                                <span class="text-xs">¥</span>{{ item.goodsPrice }}
                             </div>
                             <el-button
                                 type="primary"
                                 plain
                                 size="small"
                                 class="border-orange-500! text-orange-500! hover:bg-orange-500! hover:text-white! rounded-lg!"
-                                @click="goToProduct(item.id)"
+                                @click="goToProduct(item.goodsId)"
                             >
                                 查看详情
                             </el-button>
@@ -117,13 +112,12 @@
             favorites.value = res.data || []
         } catch (error) {
             console.error('加载收藏失败:', error)
-            ElMessage.error('加载收藏失败')
         } finally {
             loading.value = false
         }
     }
 
-    const onRemove = async (id: number) => {
+    const onRemove = async (id: string) => {
         try {
             await ElMessageBox.confirm('确定要取消收藏该商品吗？', '提示', {
                 confirmButtonText: '确定',
@@ -138,13 +132,12 @@
         } catch (error) {
             if (error !== 'cancel') {
                 console.error('取消收藏失败:', error)
-                ElMessage.error('操作失败')
             }
         }
     }
 
-    const goToProduct = (id: number) => {
-        router.push({ name: 'Goods', query: { id } }).catch(() => {})
+    const goToProduct = (goodsId: string) => {
+        router.push({ name: 'GoodsDetail', params: { goodsId } }).catch(() => {})
     }
 
     onMounted(load)

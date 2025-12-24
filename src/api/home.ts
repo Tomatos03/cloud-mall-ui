@@ -24,6 +24,11 @@ export interface CategoryItem {
     parentId: string
 }
 
+export interface NoticeItem {
+    id: string
+    content: string
+}
+
 export function fetchBanner() {
     return http.get<BannerItem[]>('/banner/list')
 }
@@ -37,6 +42,10 @@ export function fetchUser() {
 
 export function fetchCategory() {
     return http.get<CategoryItem[]>('/category/list')
+}
+
+export function fetchNotice() {
+    return http.get<NoticeItem[]>('/common/notice')
 }
 
 // 商品类型

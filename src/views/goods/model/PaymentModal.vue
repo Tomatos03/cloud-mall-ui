@@ -1,18 +1,24 @@
 <script setup lang="ts">
     import { ref, watch } from 'vue'
     import { ElMessage } from 'element-plus'
-    import { Check, Wallet, CreditCard, CircleCheckFilled } from '@element-plus/icons-vue'
-    import http from '@/utils/http'
+    import { Check, Wallet, CreditCard, CircleCheckFilled, Loading } from '@element-plus/icons-vue'
+    import { payOrder } from '@/api/order'
 
     const props = defineProps<{
         visible: boolean
         amount: number
-        goodsId: string
-        addressId?: number
-        selectedOption?: string
+        orderNo: string
+        quantity: number
     }>()
 
     const emit = defineEmits(['update:visible', 'success'])
+
+    // 支付步骤枚举
+    enum PayStep {
+        SELECT = 'select',   // 选择支付方式
+        QRCODE = 'qrcode',   // 扫码支付
+        SUCCESS = 'success'  // 支付成功
+    }
 
     const paymentMethods = [
         {
@@ -21,6 +27,7 @@
             icon: Wallet,
             color: '#07C160',
             bg: '#F0F9F4',
+            qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=weixin://wxpay/bizpayurl?pr=mock_wechat_pay'
         },
         {
             id: 'alipay',
@@ -28,19 +35,21 @@
             icon: CreditCard,
             color: '#1677FF',
             bg: '#F0F5FF',
+            qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://qr.alipay.com/mock_alipay_pay'
         },
     ]
 
+    const currentStep = ref<PayStep>(PayStep.SELECT)
     const selectedMethod = ref('wechat')
     const loading = ref(false)
-    const isSuccess = ref(false)
 
-    // 监听显示状态，打开时重置成功状态
+    // 监听显示状态，打开时重置状态
     watch(
         () => props.visible,
         (val) => {
             if (val) {
-                isSuccess.value = false
+                currentStep.value = PayStep.SELECT
+                loading.value = false
             }
         },
     )
@@ -49,50 +58,52 @@
         emit('update:visible', false)
     }
 
-    const handlePay = async () => {
+    // 第一步：确认支付方式，进入扫码
+    const handleGoToPay = () => {
+        currentStep.value = PayStep.QRCODE
+    }
+
+    // 第二步：确认支付（模拟扫码后点击确认）
+    const handleConfirmPay = async () => {
         loading.value = true
         try {
-            // 模拟创建订单并支付的流程
-            // 实际项目中通常是先创建订单，拿到订单号后再发起支付
-            // 这里根据要求直接发送创建订单/支付请求
-            await http.post('/order/create', {
-                goodsId: props.goodsId,
-                addressId: props.addressId,
-                option: props.selectedOption,
-                paymentMethod: selectedMethod.value,
-                amount: props.amount,
-            })
-
-            isSuccess.value = true
+            await payOrder(props.orderNo, selectedMethod.value)
+            currentStep.value = PayStep.SUCCESS
+            emit('success', props.orderNo)
         } catch (error) {
-            console.error('支付失败:', error)
-            ElMessage.error('支付失败，请稍后重试')
+            console.error('支付确认失败:', error)
+            ElMessage.error('支付确认失败，请稍后重试')
         } finally {
             loading.value = false
         }
+    }
+
+    const getSelectedMethodInfo = () => {
+        return paymentMethods.find(m => m.id === selectedMethod.value) || paymentMethods[0]
     }
 </script>
 
 <template>
     <el-dialog
         :model-value="visible"
-        :title="isSuccess ? '支付成功' : '选择支付方式'"
+        :title="currentStep === PayStep.SUCCESS ? '支付成功' : (currentStep === PayStep.QRCODE ? '扫码支付' : '选择支付方式')"
         width="400px"
         @close="handleClose"
         align-center
         class="payment-dialog"
+        :close-on-click-modal="currentStep !== PayStep.QRCODE"
     >
-        <div v-if="!isSuccess" class="py-4">
-            <!-- 金额展示 -->
+        <!-- 第一步：选择支付方式 -->
+        <div v-if="currentStep === PayStep.SELECT" class="py-4">
             <div class="text-center mb-8">
-                <p class="text-gray-500 text-sm mb-1">支付金额</p>
+                <p class="text-gray-500 text-sm mb-1">支付总额</p>
                 <div class="flex items-baseline justify-center gap-1">
                     <span class="text-orange-600 text-xl font-bold">¥</span>
                     <span class="text-orange-600 text-4xl font-black">{{ amount }}</span>
                 </div>
+                <p class="text-gray-400 text-xs mt-2">共 {{ quantity }} 件商品</p>
             </div>
 
-            <!-- 支付方式列表 -->
             <div class="space-y-3">
                 <div
                     v-for="method in paymentMethods"
@@ -132,7 +143,28 @@
             </div>
         </div>
 
-        <!-- 支付成功展示 -->
+        <!-- 第二步：扫码支付 -->
+        <div v-else-if="currentStep === PayStep.QRCODE" class="py-4 flex flex-col items-center">
+            <div class="text-center mb-6">
+                <p class="text-gray-500 text-sm mb-1">请使用{{ getSelectedMethodInfo().name }}扫码支付</p>
+                <div class="text-2xl font-black text-gray-800">¥{{ amount }}</div>
+            </div>
+            
+            <div class="relative p-4 bg-white border-2 border-gray-50 rounded-2xl shadow-inner mb-6">
+                <img :src="getSelectedMethodInfo().qrCode" alt="支付二维码" class="w-48 h-48" />
+                <div v-if="loading" class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-2xl">
+                    <el-icon class="text-3xl text-orange-500 animate-spin"><Loading /></el-icon>
+                </div>
+            </div>
+
+            <div class="mt-4 text-xs text-gray-400 flex items-center gap-1 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100">
+                <el-icon><CircleCheckFilled /></el-icon>
+                <span>订单编号：</span>
+                <span class="font-mono font-medium text-gray-600">{{ props.orderNo }}</span>
+            </div>
+        </div>
+
+        <!-- 第三步：支付成功 -->
         <div v-else class="py-8 flex flex-col items-center justify-center text-center">
             <el-icon class="text-6xl text-green-500 mb-4">
                 <CircleCheckFilled />
@@ -145,7 +177,8 @@
 
         <template #footer>
             <div class="flex gap-3 pt-2">
-                <template v-if="!isSuccess">
+                <!-- 第一步按钮 -->
+                <template v-if="currentStep === PayStep.SELECT">
                     <el-button class="flex-1 rounded-xl! h-12! font-bold" @click="handleClose">
                         取消
                     </el-button>
@@ -153,11 +186,28 @@
                         type="primary"
                         class="flex-1! bg-orange-600! border-orange-600! hover:bg-orange-700! rounded-xl! h-12! font-bold shadow-lg shadow-orange-100"
                         :loading="loading"
-                        @click="handlePay"
+                        @click="handleGoToPay"
                     >
                         确认支付
                     </el-button>
                 </template>
+
+                <!-- 第二步按钮 -->
+                <template v-else-if="currentStep === PayStep.QRCODE">
+                    <el-button class="flex-1 rounded-xl! h-12! font-bold" @click="currentStep = PayStep.SELECT" :disabled="loading">
+                        返回修改
+                    </el-button>
+                    <el-button
+                        type="primary"
+                        class="flex-1! bg-orange-600! border-orange-600! hover:bg-orange-700! rounded-xl! h-12! font-bold shadow-lg shadow-orange-100"
+                        :loading="loading"
+                        @click="handleConfirmPay"
+                    >
+                        我已支付
+                    </el-button>
+                </template>
+
+                <!-- 第三步按钮 -->
                 <template v-else>
                     <el-button
                         type="primary"

@@ -1,53 +1,68 @@
-import type { ResponseData } from '@/utils/http'
+import http from '@/utils/http'
 
-// 收藏项类型
+/**
+ * 收藏项类型
+ */
 export interface FavoriteItem {
-    id: number
-    title: string
-    img?: string
-    price?: string
-    desc?: string
-    storeName?: string
-    addedAt?: string
+    /** 收藏ID */
+    id: string
+    /** 用户ID */
+    userId: string
+    /** 商品ID */
+    goodsId: string
+    /** 商品标题 */
+    goodsTitle: string
+    /** 商品图片 */
+    goodsImg: string
+    /** 商品价格 */
+    goodsPrice: string
+    /** 商品描述 */
+    goodsDesc: string
+    /** 店铺ID */
+    storeId: string
+    /** 收藏时间 */
+    addedAt: string
 }
 
-// 获取收藏列表（静态数据）
-export function fetchFavorites(): Promise<ResponseData<FavoriteItem[]>> {
-    const data: FavoriteItem[] = [
-        {
-            id: 101,
-            title: '轻薄透气运动鞋',
-            img: 'https://via.placeholder.com/400x300?text=%E8%BF%90%E5%8A%A8%E9%9E%8B',
-            price: '￥239',
-            desc: '舒适透气的日常运动鞋',
-            storeName: '官方旗舰店',
-            addedAt: '2025-12-01',
-        },
-        {
-            id: 102,
-            title: '高保湿护手霜套装',
-            img: 'https://via.placeholder.com/400x300?text=%E6%8A%A4%E6%89%8B%E9%9C%9C',
-            price: '￥59',
-            desc: '滋润不油腻，适合冬季使用',
-            storeName: '美丽日记',
-            addedAt: '2025-11-23',
-        },
-        {
-            id: 103,
-            title: '北欧简约台灯',
-            img: 'https://via.placeholder.com/400x300?text=%E5%8F%B0%E7%81%AF',
-            price: '￥129',
-            desc: '柔光护眼，节能省电',
-            storeName: '家居生活',
-            addedAt: '2025-10-10',
-        },
-    ]
-
-    return Promise.resolve({ code: 200, message: 'ok', data })
+/**
+ * 获取收藏列表
+ */
+export function fetchFavorites() {
+    return http.get<FavoriteItem[]>('/favorites')
 }
 
-// 取消收藏（静态处理）
-export function removeFavorite(id: number): Promise<ResponseData<{ success: boolean }>> {
-    console.log('removeFavorite called, id=', id)
-    return Promise.resolve({ code: 200, message: 'ok', data: { success: true } })
+/**
+ * 添加收藏
+ * @param goodsId 商品ID
+ * @param storeId 店铺ID
+ */
+export function addFavorite(goodsId: string, storeId: string) {
+    // 将 goodsId 与 storeId 都放入请求体，接口路径不携带参数
+    return http.post<{ id: string; goodsId: string }>(`/favorites`, { goodsId, storeId })
+}
+
+/**
+ * 取消收藏
+ * @param id 收藏ID
+ */
+export function removeFavorite(id: string) {
+    return http.delete(`/favorites/${id}`)
+}
+
+/**
+ * 收藏状态
+ */
+export interface FavoriteStatus {
+    /** 是否已收藏 */
+    isFavorite: boolean
+    /** 收藏ID（已收藏时返回ID，未收藏时返回null） */
+    favoriteId: string | null
+}
+
+/**
+ * 检查是否已收藏
+ * @param goodsId 商品ID
+ */
+export function checkFavoriteStatus(goodsId: string) {
+    return http.get<FavoriteStatus>(`/favorites/status/${goodsId}`)
 }

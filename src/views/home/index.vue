@@ -5,6 +5,7 @@
         </el-header>
 
         <el-main class="flex-1 overflow-y-auto overflow-x-hidden space-y-5">
+          <NoticeBar />
             <div class="p-4">
                 <el-container class="h-120">
                     <el-aside width="280px" class="categoryAside">
@@ -157,6 +158,7 @@
         type User,
     } from '@/api/home'
     import BannerCarousel from '@/components/banner/BannerCarousel.vue'
+    import NoticeBar from './model/NoticeBar.vue'
     import CategorySidebar from './model/CategorySidebar.vue'
     import Header from '@/views/home/model/Header.vue'
     import CategoryProducts from '@/views/home/model/CategoryProducts.vue'
