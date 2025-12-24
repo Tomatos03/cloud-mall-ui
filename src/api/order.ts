@@ -1,142 +1,490 @@
 import http from '@/utils/http'
 
-
 /**
- * 订单状态枚举
+ * 订单状态枚举 - 与后端保持一致
  */
 export enum OrderStatus {
     /** 待支付 */
-    PENDING_PAYMENT = 'pending_payment',
+    PENDING_PAYMENT = 'PENDING_PAYMENT',
     /** 待发货 */
-    PENDING_SHIPMENT = 'pending_shipment',
-    /** 待收货 */
-    PENDING_RECEIPT = 'pending_receipt',
-    /** 待评价 */
-    PENDING_REVIEW = 'pending_review',
-    /** 待退款 */
-    PENDING_REFUND = 'pending_refund',
-    /** 已退款 */
-    REFUNDED = 'refunded',
-    /** 已取消 */
-    CANCELLED = 'cancelled',
+    PENDING_SHIPMENT = 'PENDING_SHIPMENT',
+    /** 已发货/待收货 */
+    SHIPPED = 'SHIPPED',
     /** 已完成 */
-    COMPLETED = 'completed',
+    COMPLETED = 'COMPLETED',
+    /** 已评价 */
+    RATED = 'RATED',
+    /** 已退款 */
+    REFUNDED = 'REFUNDED',
+    /** 已取消 */
+    CANCELLED = 'CANCELLED',
 }
 
 /**
- * 订单商品项
+ * 订单类型枚举（前端计算）
+ */
+export enum OrderType {
+    /** 父订单（多店铺） */
+    PARENT = 'PARENT',
+    /** 普通订单（单店铺） */
+    NORMAL = 'NORMAL',
+}
+
+/**
+ * 购物车类型枚举
+ */
+export enum CartType {
+    /** 立即购买 */
+    INSTANT_BUY = 'INSTANT_BUY',
+    /** 普通购物车 */
+    NORMAL = 'NORMAL',
+}
+
+/**
+ * 订单项（商品明细） - 与后端 OrderItem 对应
  */
 export interface OrderItem {
+    /** 订单项ID */
     id: number
-    /** 商品名称 */
-    productName: string
-    /** 商品图片 */
-    productImage: string
-    /** 商品数量 */
+    /** 所属订单ID */
+    orderId: number
+    /** 商品ID */
+    goodsId: number
+    /** 商品名称快照 */
+    goodsName: string
+    /** 商品图片快照 */
+    goodsImg: string
+    /** 下单时商品单价（单位：分） */
+    goodsPrice: number
+    /** 购买数量 */
     quantity: number
-    /** 单价 */
-    price: number
-    /** 规格/属性 */
-    spec?: string
+    /** 明细小计（单位：分） */
+    totalPrice: number
+    /** 创建时间 */
+    createTime: string
 }
 
 /**
- * 订单类型
+ * 店铺订单视图 - 与后端 ShopOrderVO 对应
  */
-export interface Order {
-    id: number
-    /** 订单号 */
+export interface ShopOrderVO {
+    /** 子订单ID */
+    orderId: number
+    /** 子订单号 */
     orderNo: string
-    /** 商品列表 */
+    /** 店铺ID */
+    storeId: number
+    /** 店铺名称 */
+    storeName: string
+    /** 子订单状态 */
+    status: OrderStatus
+    /** 商品明细列表 */
     items: OrderItem[]
-    /** 订单总价 */
-    totalPrice: number
-    /** 下单时间 */
-    createTime: string
+    /** 评分（1-5分），未评价为null */
+    rate?: number | null
+    /** 评价内容，未评价为null */
+    comment?: string | null
+    /** 商家回复，未回复为null */
+    reply?: string | null
+}
+
+/**
+ * 订单聚合视图 - 与后端 OrderAggregateVO 对应
+ */
+export interface OrderAggregateVO {
+    /** 订单ID */
+    orderId: number
+    /** 订单号（父订单号或普通订单号） */
+    orderNo: string
     /** 订单状态 */
     status: OrderStatus
-    /** 订单状态文本 */
-    statusText: string
-    /** 收货人 */
-    receiver: string
-    /** 收货地址 */
-    address: string
-    /** 联系电话 */
-    phone: string
+    /** 订单创建时间（格式：yyyy-MM-dd HH:mm:ss） */
+    createTime: string
+    /** 店铺订单列表（多店铺订单包含多个，单店铺订单只有1个） */
+    shopOrders: ShopOrderVO[]
 }
 
 /**
- * 订单列表查询参数
+ * 订单分页查询参数 - 与后端接口参数对应
  */
-export interface OrderQueryParams {
-    /** 订单状态 */
-    status?: OrderStatus | 'all'
-    /** 搜索关键词 */
-    keyword?: string
-    /** 页码 */
-    page?: number
-    /** 每页数量 */
+export interface OrderPageParams {
+    /** 页码（从1开始，默认1） */
+    pageNum?: number
+    /** 每页数量（默认10） */
     pageSize?: number
+    /** 订单号（模糊查询） */
+    orderNo?: string
+    /** 订单状态（精确匹配） */
+    status?: OrderStatus | string
+    /** 开始时间（格式：yyyy-MM-dd HH:mm:ss） */
+    startTime?: string
+    /** 结束时间（格式：yyyy-MM-dd HH:mm:ss） */
+    endTime?: string
 }
 
 /**
- * 获取订单列表
+ * 分页返回结果 - 与后端 Page 对象对应
  */
-export function fetchOrderList(params?: OrderQueryParams) {
-    return http.get<Order[]>('/order/list', params as Record<string, unknown>)
+export interface PageResult<T> {
+    /** 数据列表 */
+    records: T[]
+    /** 总记录数 */
+    total: number
+    /** 每页数量 */
+    size: number
+    /** 当前页码 */
+    current: number
+    /** 总页数 */
+    pages: number
 }
 
 /**
- * 获取订单详情
+ * 商品项 - 与后端 TradeShopItemDTO 对应
  */
-export function fetchOrderDetail(orderNo: string) {
-    return http.get<Order>(`/order/detail/${orderNo}`)
-}
-
-/**
- * 取消订单
- */
-export function cancelOrder(orderNo: string) {
-    return http.post(`/order/cancel`, { orderNo })
-}
-
-/**
- * 删除订单
- */
-export function deleteOrder(orderNo: string) {
-    return http.delete(`/order/delete/${orderNo}`)
-}
-
-/**
- * 确认收货
- */
-export function confirmReceipt(orderNo: string) {
-    return http.post(`/order/confirm`, { orderNo })
-}
-
-/**
- * 申请退款
- */
-export function applyRefund(orderNo: string, reason: string) {
-    return http.post(`/order/refund`, { orderNo, reason })
-}
-
-/**
- * 创建订单
- */
-export function createOrder(data: {
-    goodsId: string
-    addressId?: number
-    option?: string
+export interface TradeShopItem {
+    /** 商品ID */
+    goodsId: number
+    /** 购买数量 */
     quantity: number
-    amount: number
-}) {
-    return http.post<{ orderNo: string }>('/order/create', data)
 }
 
 /**
- * 支付订单
+ * 店铺交易数据 - 与后端 TradeShopDTO 对应
  */
-export function payOrder(orderNo: string, paymentMethod: string) {
-    return http.post(`/order/pay`, { orderNo, paymentMethod })
+export interface TradeShop {
+    /** 店铺ID */
+    storeId: number
+    /** 该店铺的商品列表 */
+    tradeShopItemList: TradeShopItem[]
+}
+
+/**
+ * 下单参数 - 与后端 TradeDTO 对应
+ */
+export interface TradeDTO {
+    /** 收货地址ID */
+    addressId: number
+    /** 交易店铺列表 */
+    tradeItems: TradeShop[]
+}
+
+/**
+ * 创建订单响应
+ */
+export interface CreateOrderResponse {
+    /** 订单编号 */
+    orderNo: string
+}
+
+/**
+ * 创建订单 - POST /web/order/create/{cartType}
+ * @param data 下单参数
+ * @param cartType 购物车类型（instant_buy: 立即购买, normal: 购物车购买）
+ * @returns 订单创建响应
+ */
+export function createOrder(data: TradeDTO, cartType: CartType = CartType.INSTANT_BUY) {
+    return http.post<CreateOrderResponse>(`/order/create/${cartType}`, data)
+}
+
+/**
+ * 创建立即购买订单的辅助函数
+ * @param addressId 收货地址ID
+ * @param storeId 店铺ID
+ * @param goodsId 商品ID
+ * @param quantity 购买数量
+ * @returns 订单创建响应
+ */
+export function createInstantBuyOrder(
+    addressId: number,
+    storeId: number,
+    goodsId: number,
+    quantity: number
+) {
+    const data: TradeDTO = {
+        addressId,
+        tradeItems: [
+            {
+                storeId,
+                tradeShopItemList: [
+                    {
+                        goodsId,
+                        quantity,
+                    },
+                ],
+            },
+        ],
+    }
+    return createOrder(data, CartType.INSTANT_BUY)
+}
+
+/**
+ * 创建购物车订单的辅助函数
+ * @param addressId 收货地址ID
+ * @param cartItems 购物车商品数据，Map<店铺ID, 商品列表>
+ * @returns 订单创建响应
+ */
+export function createCartOrder(
+    addressId: number,
+    cartItems: Map<number, TradeShopItem[]>
+) {
+    const tradeItems: TradeShop[] = Array.from(cartItems.entries()).map(
+        ([storeId, items]) => ({
+            storeId,
+            tradeShopItemList: items,
+        })
+    )
+
+    const data: TradeDTO = {
+        addressId,
+        tradeItems,
+    }
+    return createOrder(data, CartType.NORMAL)
+}
+
+/**
+ * 分页查询订单 - GET /web/order/page
+ * 返回订单聚合视图，包含店铺订单和商品明细
+ * @param params 分页查询参数
+ * @returns 订单聚合视图分页结果
+ */
+export async function pageQueryOrders(params: OrderPageParams = {}) {
+    // 构建查询参数，只添加有值的参数
+    const queryParams: Record<string, string | number> = {}
+
+    if (params.pageNum !== undefined) queryParams.pageNum = params.pageNum
+    if (params.pageSize !== undefined) queryParams.pageSize = params.pageSize
+    if (params.orderNo) queryParams.orderNo = params.orderNo
+    if (params.status) queryParams.status = params.status
+    if (params.startTime) queryParams.startTime = params.startTime
+    if (params.endTime) queryParams.endTime = params.endTime
+
+    const res = await http.get<PageResult<OrderAggregateVO>>('/order/page', queryParams)
+
+    // 转换数据类型
+    if (res && res.data && res.data.records) {
+        res.data.records = res.data.records.map(convertOrderAggregateVO)
+        res.data.total = Number(res.data.total)
+        res.data.size = Number(res.data.size)
+        res.data.current = Number(res.data.current)
+        res.data.pages = Number(res.data.pages)
+    }
+
+    return res
+}
+
+/**
+ * 订单评价 - POST /web/order/comment
+ * @param orderId 订单ID
+ * @param rate 评分 1-5
+ * @param comment 评价内容
+ * @returns 是否成功
+ */
+export function commentOrder(orderId: number, rate: number, comment: string) {
+    return http.post<boolean>('/order/comment', null, {
+        params: {
+            orderId,
+            rate,
+            comment,
+        }
+    })
+}
+
+/**
+ * 订单回复 - POST /web/order/reply
+ * @param orderId 订单ID
+ * @param reply 回复内容
+ * @returns 是否成功
+ */
+export function replyOrder(orderId: number, reply: string) {
+    return http.post<boolean>('/order/reply', null, {
+        params: {
+            orderId,
+            reply,
+        }
+    })
+}
+
+/**
+ * 转换订单项数据，将字符串类型的数字字段转换为 number
+ * @param item 订单项原始数据
+ * @returns 转换后的订单项
+ */
+function convertOrderItem(item: any): OrderItem {
+    return {
+        ...item,
+        id: Number(item.id),
+        orderId: Number(item.orderId),
+        goodsId: Number(item.goodsId),
+        goodsPrice: Number(item.goodsPrice),
+        quantity: Number(item.quantity),
+        totalPrice: Number(item.totalPrice),
+    }
+}
+
+/**
+ * 转换店铺订单数据，将字符串类型的数字字段转换为 number
+ * @param shopOrder 店铺订单原始数据
+ * @returns 转换后的店铺订单
+ */
+function convertShopOrder(shopOrder: any): ShopOrderVO {
+    return {
+        ...shopOrder,
+        orderId: Number(shopOrder.orderId),
+        storeId: Number(shopOrder.storeId),
+        items: shopOrder.items?.map(convertOrderItem) || [],
+        rate: shopOrder.rate !== null && shopOrder.rate !== undefined ? Number(shopOrder.rate) : null,
+    }
+}
+
+/**
+ * 转换订单聚合视图数据，将字符串类型的数字字段转换为 number
+ * @param order 订单聚合视图原始数据
+ * @returns 转换后的订单聚合视图
+ */
+function convertOrderAggregateVO(order: any): OrderAggregateVO {
+    return {
+        ...order,
+        orderId: Number(order.orderId),
+        shopOrders: order.shopOrders?.map(convertShopOrder) || [],
+    }
+}
+
+/**
+ * 查询订单支付状态 - GET /web/order/payment/status
+ * @param orderNo 订单号
+ * @returns 订单是否支付成功
+ */
+export function getPaymentStatus(orderNo: string) {
+    return http.get<boolean>('/order/payment/status', {
+        orderNo,
+    })
+}
+
+/**
+ * 获取订单状态文本
+ * @param status 订单状态
+ * @returns 状态文本
+ */
+export function getOrderStatusText(status: OrderStatus): string {
+    const statusTextMap: Record<OrderStatus, string> = {
+        [OrderStatus.PENDING_PAYMENT]: '待支付',
+        [OrderStatus.PENDING_SHIPMENT]: '待发货',
+        [OrderStatus.SHIPPED]: '待收货',
+        [OrderStatus.COMPLETED]: '已完成',
+        [OrderStatus.RATED]: '已评价',
+        [OrderStatus.REFUNDED]: '已退款',
+        [OrderStatus.CANCELLED]: '已取消',
+    }
+    return statusTextMap[status] || '未知状态'
+}
+
+/**
+ * 获取订单状态标签类型
+ * @param status 订单状态
+ * @returns Element Plus 标签类型
+ */
+export function getOrderStatusTagType(status: OrderStatus): string {
+    const typeMap: Record<OrderStatus, string> = {
+        [OrderStatus.PENDING_PAYMENT]: 'danger',
+        [OrderStatus.PENDING_SHIPMENT]: 'warning',
+        [OrderStatus.SHIPPED]: 'primary',
+        [OrderStatus.COMPLETED]: 'success',
+        [OrderStatus.RATED]: 'success',
+        [OrderStatus.REFUNDED]: 'info',
+        [OrderStatus.CANCELLED]: 'info',
+    }
+    return typeMap[status] || ''
+}
+
+/**
+ * 判断订单类型（前端计算）
+ * @param orderAggregateVO 订单聚合视图
+ * @returns 订单类型
+ */
+export function getOrderType(orderAggregateVO: OrderAggregateVO): OrderType {
+    return orderAggregateVO.shopOrders.length > 1 ? OrderType.PARENT : OrderType.NORMAL
+}
+
+/**
+ * 计算订单总价（前端计算）
+ * @param orderAggregateVO 订单聚合视图
+ * @returns 订单总价（单位：分）
+ */
+export function calculateOrderTotalPrice(orderAggregateVO: OrderAggregateVO): number {
+    return orderAggregateVO.shopOrders.reduce((sum, shopOrder) => {
+        const shopTotal = shopOrder.items.reduce((itemSum, item) => {
+            return itemSum + item.totalPrice
+        }, 0)
+        return sum + shopTotal
+    }, 0)
+}
+
+/**
+ * 计算店铺订单小计（前端计算）
+ * @param shopOrder 店铺订单
+ * @returns 店铺订单小计（单位：分）
+ */
+export function calculateShopOrderTotal(shopOrder: ShopOrderVO): number {
+    return shopOrder.items.reduce((sum, item) => {
+        return sum + item.totalPrice
+    }, 0)
+}
+
+/**
+ * 计算订单商品项总数（前端计算）
+ * @param orderAggregateVO 订单聚合视图
+ * @returns 商品项总数
+ */
+export function calculateOrderItemCount(orderAggregateVO: OrderAggregateVO): number {
+    return orderAggregateVO.shopOrders.reduce((count, shopOrder) => {
+        return count + shopOrder.items.length
+    }, 0)
+}
+
+/**
+ * 计算店铺订单商品项总数（前端计算）
+ * @param shopOrder 店铺订单
+ * @returns 商品项总数
+ */
+export function calculateShopOrderItemCount(shopOrder: ShopOrderVO): number {
+    return shopOrder.items.reduce((count, item) => {
+        return count + item.quantity
+    }, 0)
+}
+
+/**
+ * 格式化金额（分转元）
+ * @param price 金额（单位：分）
+ * @returns 格式化后的金额字符串（保留2位小数）
+ */
+export function formatPrice(price: number): string {
+    return (price / 100).toFixed(2)
+}
+
+/**
+ * 格式化时间
+ * @param timeStr 时间字符串（格式：yyyy-MM-dd HH:mm:ss）
+ * @returns 格式化后的时间字符串
+ */
+export function formatTime(timeStr: string): string {
+    // 后端返回的时间格式已经是 yyyy-MM-dd HH:mm:ss，直接返回
+    return timeStr
+}
+
+/**
+ * 判断订单是否可以评价
+ * @param shopOrder 店铺订单
+ * @returns 是否可以评价
+ */
+export function canComment(shopOrder: ShopOrderVO): boolean {
+    return (shopOrder.status === OrderStatus.COMPLETED || shopOrder.status === OrderStatus.RATED) && !shopOrder.comment
+}
+
+/**
+ * 判断订单是否已评价
+ * @param shopOrder 店铺订单
+ * @returns 是否已评价
+ */
+export function isCommented(shopOrder: ShopOrderVO): boolean {
+    return shopOrder.rate !== null && shopOrder.rate !== undefined
 }

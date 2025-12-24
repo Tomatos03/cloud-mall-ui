@@ -1,0 +1,4 @@
+- 当前项目封装了工具@/utils/http.ts
+- api函数定义按照restFul api规范
+- 项目基于Vu3, TailWind, TypeScript
+- 每一个api发送请求时自动带上前缀/web

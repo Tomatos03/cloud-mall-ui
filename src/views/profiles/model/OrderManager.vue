@@ -3,190 +3,213 @@
         <!-- 标签页导航 -->
         <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="custom-tabs">
             <el-tab-pane label="所有订单" name="all" />
-            <el-tab-pane label="待支付" name="pending_payment" />
-            <el-tab-pane label="待发货" name="pending_shipment" />
-            <el-tab-pane label="待收货" name="pending_receipt" />
-            <el-tab-pane label="待评价" name="pending_review" />
-            <el-tab-pane label="待退款" name="pending_refund" />
-            <el-tab-pane label="已退款" name="refunded" />
-            <el-tab-pane label="已取消" name="cancelled" />
+            <el-tab-pane label="待支付" name="PENDING_PAYMENT" />
+            <el-tab-pane label="待发货" name="PENDING_SHIPMENT" />
+            <el-tab-pane label="待收货" name="SHIPPED" />
+            <el-tab-pane label="已完成" name="COMPLETED" />
+            <el-tab-pane label="已评价" name="RATED" />
+            <el-tab-pane label="已退款" name="REFUNDED" />
+            <el-tab-pane label="已取消" name="CANCELLED" />
         </el-tabs>
-
-        <!-- 搜索栏 -->
-        <div class="p-6 border-b border-gray-50 flex gap-4 bg-gray-50/30">
-            <el-input
-                v-model="searchKeyword"
-                placeholder="输入商品名称或订单号进行搜索"
-                clearable
-                class="flex-1 custom-input"
-                @keyup.enter="handleSearch"
-            >
-                <template #prefix>
-                    <el-icon class="text-gray-400">
-                        <Search />
-                    </el-icon>
-                </template>
-            </el-input>
-            <el-button
-                type="primary"
-                @click="handleSearch"
-                class="bg-orange-500! border-orange-500! hover:bg-orange-600! rounded-xl! px-8 font-bold"
-            >
-                搜索
-            </el-button>
-            <el-button @click="handleReset" class="rounded-xl! px-6"> 重置 </el-button>
-        </div>
 
         <!-- 订单列表 -->
         <div class="p-6" v-loading="loading">
             <div v-if="orderList.length > 0" class="space-y-6">
                 <div
                     v-for="order in orderList"
-                    :key="order.id"
+                    :key="order.orderId"
                     class="border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg hover:shadow-gray-100 transition-all duration-300 bg-white"
                 >
                     <!-- 订单头部信息 -->
-                    <div
-                        class="bg-gray-50/50 px-6 py-4 flex items-center justify-between border-b border-gray-50"
-                    >
-                        <div class="flex items-center gap-6 text-sm">
-                            <span class="text-gray-500">
-                                下单时间：<span class="text-gray-900 font-medium">{{
-                                    order.createTime
-                                }}</span>
-                            </span>
-                            <span class="text-gray-500">
-                                订单号：<span class="text-gray-900 font-medium">{{
-                                    order.orderNo
-                                }}</span>
+                    <div class="bg-gray-50/50 px-6 py-4 border-b border-gray-50">
+                        <div class="mb-2">
+                            <span class="text-gray-400 text-sm">
+                                {{ getOrderTypeText(order) }}
                             </span>
                         </div>
-                        <el-tag
-                            :type="getStatusTagType(order.status)"
-                            effect="plain"
-                            class="rounded-full! px-4! font-bold!"
-                        >
-                            {{ order.statusText }}
-                        </el-tag>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-6 text-sm">
+                                <span class="text-gray-500">
+                                    下单时间：<span class="text-gray-900 font-medium">{{
+                                        order.createTime
+                                    }}</span>
+                                </span>
+                                <span class="text-gray-500">
+                                    订单号：<span class="text-gray-900 font-medium">{{
+                                        order.orderNo
+                                    }}</span>
+                                </span>
+                            </div>
+                            <el-tag
+                                :type="getOrderStatusTagType(order.status)"
+                                effect="plain"
+                                class="rounded-full! px-4! font-bold!"
+                            >
+                                {{ getOrderStatusText(order.status) }}
+                            </el-tag>
+                        </div>
                     </div>
 
-                    <!-- 订单内容 -->
-                    <div class="p-6 grid grid-cols-12 gap-6 items-center">
-                        <!-- 商品信息 -->
-                        <div class="col-span-7 space-y-4">
-                            <div
-                                v-for="item in order.items"
-                                :key="item.id"
-                                class="flex items-center gap-4"
+                    <!-- 店铺订单列表 -->
+                    <div
+                        v-for="shopOrder in order.shopOrders"
+                        :key="shopOrder.orderId"
+                        class="border-b border-gray-50 last:border-b-0"
+                    >
+                        <!-- 店铺信息头部 -->
+                        <div class="px-6 py-3 bg-gray-50/30 flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-sm">
+                                <el-icon class="text-gray-400"><Shop /></el-icon>
+                                <span
+                                    class="text-gray-900 font-bold hover:text-orange-500 cursor-pointer transition-colors"
+                                    @click="$router.push(`/store/${shopOrder.storeId}`)"
+                                >
+                                    {{ shopOrder.storeName }}
+                                </span>
+                            </div>
+                            <el-tag
+                                v-if="order.shopOrders.length > 1"
+                                :type="getOrderStatusTagType(shopOrder.status)"
+                                size="small"
+                                effect="plain"
+                                class="rounded-full!"
                             >
+                                {{ getOrderStatusText(shopOrder.status) }}
+                            </el-tag>
+                        </div>
+
+                        <!-- 商品列表 -->
+                        <div class="p-6 space-y-3">
+                            <div
+                                v-for="item in shopOrder.items"
+                                :key="item.id"
+                                class="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                            >
+                                <!-- 商品图片 -->
                                 <div
-                                    class="w-20 h-20 rounded-xl overflow-hidden border border-gray-100 shrink-0"
+                                    class="w-20 h-20 rounded-xl overflow-hidden border border-gray-100 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                    @click="$router.push(`/goods/${item.goodsId}`)"
                                 >
                                     <img
-                                        :src="item.productImage"
-                                        :alt="item.productName"
+                                        :src="item.goodsImg"
+                                        :alt="item.goodsName"
                                         class="w-full h-full object-cover"
                                     />
                                 </div>
+
+                                <!-- 商品信息 -->
                                 <div class="flex-1 min-w-0">
                                     <h4
-                                        class="text-gray-900 font-bold truncate hover:text-orange-500 cursor-pointer transition-colors"
+                                        class="text-gray-900 font-bold hover:text-orange-500 cursor-pointer transition-colors mb-2"
+                                        @click="$router.push(`/goods/${item.goodsId}`)"
                                     >
-                                        {{ item.productName }}
+                                        {{ item.goodsName }}
                                     </h4>
-                                    <p class="text-gray-400 text-xs mt-1">规格：{{ item.spec || '默认' }}</p>
+                                    <div class="flex items-center gap-4 text-sm">
+                                        <span class="text-gray-400">数量：{{ item.quantity }}</span>
+                                        <span class="text-gray-400">单价：¥{{ formatPrice(item.goodsPrice) }}</span>
+                                    </div>
                                 </div>
+
+                                <!-- 商品小计 -->
                                 <div class="text-right shrink-0">
-                                    <div class="text-gray-900 font-medium">
-                                        ¥{{ item.price }}
-                                    </div>
-                                    <div class="text-gray-400 text-xs">
-                                        x{{ item.quantity }}
+                                    <div class="text-orange-600 font-bold text-lg">
+                                        ¥{{ formatPrice(item.totalPrice) }}
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- 收货信息 -->
-                        <div class="col-span-3 border-l border-gray-50 pl-6 space-y-1">
+                            <!-- 评价信息 -->
                             <div
-                                class="flex items-center gap-2 text-gray-900 font-bold"
+                                v-if="isCommented(shopOrder)"
+                                class="mt-4 p-4 bg-orange-50/30 rounded-xl border border-orange-100"
                             >
-                                <el-icon class="text-gray-400"><User /></el-icon>
-                                {{ order.receiver }}
-                            </div>
-                            <div class="text-gray-500 text-xs flex items-start gap-2">
-                                <el-icon class="mt-0.5 text-gray-400"
-                                    ><Location
-                                /></el-icon>
-                                <span class="leading-relaxed">{{ order.address }}</span>
-                            </div>
-                            <div class="text-gray-500 text-xs flex items-center gap-2">
-                                <el-icon class="text-gray-400"><Phone /></el-icon>
-                                {{ order.phone }}
-                            </div>
-                        </div>
-
-                        <!-- 订单金额与操作 -->
-                        <div
-                            class="col-span-2 border-l border-gray-50 pl-6 text-center space-y-4"
-                        >
-                            <div>
-                                <div class="text-xs text-gray-400 mb-1">订单总额</div>
-                                <div class="text-xl font-black text-orange-600">
-                                    ¥{{ order.totalPrice }}
+                                <div class="flex items-start gap-3">
+                                    <el-icon class="mt-1 text-orange-400"><ChatDotRound /></el-icon>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <el-rate
+                                                :model-value="shopOrder.rate || 0"
+                                                disabled
+                                                size="small"
+                                                show-score
+                                                text-color="#ff9900"
+                                            />
+                                        </div>
+                                        <p class="text-gray-700 text-sm leading-relaxed mb-2">
+                                            {{ shopOrder.comment }}
+                                        </p>
+                                        <p
+                                            v-if="shopOrder.reply"
+                                            class="text-orange-600 text-sm leading-relaxed pl-4 border-l-2 border-orange-300"
+                                        >
+                                            商家回复：{{ shopOrder.reply }}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="flex flex-col gap-2">
-                                <el-button
-                                    v-if="order.status === OrderStatus.PENDING_PAYMENT"
-                                    type="primary"
-                                    class="w-full! bg-orange-500! border-orange-500! hover:bg-orange-600! rounded-xl! font-bold"
-                                    @click="handlePay(order.orderNo)"
-                                >
-                                    立即支付
-                                </el-button>
-                                <el-button
-                                    v-if="order.status === OrderStatus.PENDING_SHIPMENT"
-                                    type="warning"
-                                    plain
-                                    class="w-full! rounded-xl! border-orange-200! text-orange-500! hover:bg-orange-50!"
-                                    @click="handleRefund(order.orderNo)"
-                                >
-                                    申请退款
-                                </el-button>
-                                <el-button
-                                    v-if="order.status === OrderStatus.PENDING_RECEIPT"
-                                    type="success"
-                                    class="w-full! rounded-xl! font-bold"
-                                    @click="handleConfirm(order.orderNo)"
-                                >
-                                    确认收货
-                                </el-button>
-                                <el-button
-                                    v-if="order.status === OrderStatus.PENDING_PAYMENT"
-                                    type="info"
-                                    plain
-                                    class="w-full! rounded-xl!"
-                                    @click="handleCancel(order.orderNo)"
-                                >
-                                    取消订单
-                                </el-button>
-                                <el-button
-                                    v-if="
-                                        order.status === OrderStatus.COMPLETED ||
-                                        order.status === OrderStatus.PENDING_REVIEW
-                                    "
-                                    class="w-full! rounded-xl! hover:text-orange-500! hover:border-orange-200!"
-                                    @click="$router.push(`/order/detail/${order.orderNo}`)"
-                                >
-                                    查看详情
-                                </el-button>
+                            <!-- 店铺订单操作栏 -->
+                            <div class="flex items-center justify-between pt-4 border-t border-gray-50">
+                                <div class="text-sm">
+                                    <span class="text-gray-400">商品总数：</span>
+                                    <span class="text-gray-900 font-bold">
+                                        {{ calculateShopOrderItemCount(shopOrder) }}
+                                    </span>
+                                    <span class="text-gray-400 ml-4">小计：</span>
+                                    <span class="text-orange-600 font-bold text-lg">
+                                        ¥{{ formatPrice(calculateShopOrderTotal(shopOrder)) }}
+                                    </span>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <el-button
+                                        v-if="canComment(shopOrder)"
+                                        type="warning"
+                                        size="small"
+                                        class="rounded-xl! font-bold"
+                                        @click="handleComment(shopOrder)"
+                                    >
+                                        去评价
+                                    </el-button>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- 订单总计与操作 -->
+                    <div class="px-6 py-4 bg-gray-50/50 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <span class="text-gray-500 text-sm">订单总额：</span>
+                            <span class="text-orange-600 font-black text-2xl">
+                                ¥{{ formatPrice(calculateOrderTotalPrice(order)) }}
+                            </span>
+                        </div>
+                        <!-- 待支付订单显示支付按钮 -->
+                        <el-button
+                            v-if="order.status === OrderStatus.PENDING_PAYMENT"
+                            type="primary"
+                            class="bg-orange-600! border-orange-600! hover:bg-orange-700! rounded-xl! font-bold px-8!"
+                            @click="handlePayment(order)"
+                        >
+                            立即支付
+                        </el-button>
+                    </div>
                 </div>
+            </div>
+
+            <!-- 分页 -->
+            <div v-if="total > 0" class="flex justify-center mt-8">
+                <el-pagination
+                    v-model:current-page="pageNum"
+                    v-model:page-size="pageSize"
+                    :total="total"
+                    :page-sizes="[10, 20, 30, 50]"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    @size-change="loadOrderList"
+                    @current-change="loadOrderList"
+                    class="custom-pagination"
+                />
             </div>
 
             <!-- 空状态 -->
@@ -209,145 +232,211 @@
                 </el-button>
             </div>
         </div>
+
+        <!-- 评价对话框 -->
+        <el-dialog
+            v-model="commentDialogVisible"
+            title="订单评价"
+            width="500px"
+            :close-on-click-modal="false"
+        >
+            <el-form :model="commentForm" label-width="80px">
+                <el-form-item label="评分">
+                    <el-rate v-model="commentForm.rate" show-score text-color="#ff9900" />
+                </el-form-item>
+                <el-form-item label="评价内容">
+                    <el-input
+                        v-model="commentForm.comment"
+                        type="textarea"
+                        :rows="5"
+                        placeholder="请输入您的评价内容"
+                        maxlength="500"
+                        show-word-limit
+                    />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="commentDialogVisible = false">取消</el-button>
+                <el-button
+                    type="primary"
+                    @click="submitComment"
+                    :loading="commentLoading"
+                    class="bg-orange-500! border-orange-500! hover:bg-orange-600!"
+                >
+                    提交评价
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 支付弹窗 -->
+        <PaymentModal
+            v-model:visible="paymentModalVisible"
+            :amount="paymentAmount"
+            :order-no="paymentOrderNo"
+            :quantity="paymentQuantity"
+            @success="handlePaymentSuccess"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
-    import { ref, onMounted } from 'vue'
-    import { ElMessage, ElMessageBox } from 'element-plus'
-    import { Search, Document, User, Location, Phone } from '@element-plus/icons-vue'
-    import { 
-        OrderStatus, 
-        type Order, 
-        fetchOrderList, 
-        payOrder, 
-        cancelOrder, 
-        confirmReceipt, 
-        applyRefund 
+    import { ref, onMounted, computed } from 'vue'
+    import { ElMessage } from 'element-plus'
+    import { Document, Shop, ChatDotRound } from '@element-plus/icons-vue'
+    import PaymentModal from '@/views/goods/model/PaymentModal.vue'
+    import {
+        OrderStatus,
+        OrderType,
+        type OrderAggregateVO,
+        type ShopOrderVO,
+        pageQueryOrders,
+        commentOrder,
+        getOrderStatusText,
+        getOrderStatusTagType,
+        getOrderType,
+        calculateOrderTotalPrice,
+        calculateShopOrderTotal,
+        calculateShopOrderItemCount,
+        formatPrice,
+        canComment,
+        isCommented,
     } from '@/api/order'
 
     const activeTab = ref('all')
-    const searchKeyword = ref('')
-    const orderList = ref<Order[]>([])
+    const orderList = ref<OrderAggregateVO[]>([])
     const loading = ref(false)
+    const pageNum = ref(1)
+    const pageSize = ref(10)
+    const total = ref(0)
 
+    // 评价相关
+    const commentDialogVisible = ref(false)
+    const commentLoading = ref(false)
+    const currentShopOrder = ref<ShopOrderVO | null>(null)
+    const commentForm = ref({
+        rate: 5,
+        comment: '',
+    })
+
+    // 支付相关
+    const paymentModalVisible = ref(false)
+    const paymentOrderNo = ref('')
+    const paymentAmount = ref(0)
+    const paymentQuantity = ref(0)
+    const currentPaymentOrder = ref<OrderAggregateVO | null>(null)
+
+    /**
+     * 获取订单类型文本
+     */
+    const getOrderTypeText = (order: OrderAggregateVO): string => {
+        const orderType = getOrderType(order)
+        return orderType === OrderType.PARENT ? '多店铺订单' : '单店铺订单'
+    }
+
+    /**
+     * 加载订单列表
+     */
     const loadOrderList = async () => {
         loading.value = true
         try {
-            const params = {
-                status: activeTab.value === 'all' ? undefined : activeTab.value as OrderStatus,
-                keyword: searchKeyword.value.trim() || undefined
+            // 构建查询参数
+            const params: any = {
+                pageNum: pageNum.value,
+                pageSize: pageSize.value,
             }
-            const res = await fetchOrderList(params)
-            // 假设 fetchOrderList 直接返回 Order[]
-            orderList.value = res
-        } catch (error) {
-            console.error('加载订单列表失败:', error)
-            ElMessage.error('加载订单列表失败')
+
+            // 只有选择具体状态时才添加 status 参数
+            if (activeTab.value !== 'all') {
+                params.status = activeTab.value
+            }
+
+            const res = await pageQueryOrders(params)
+
+            if (res && res.data) {
+                orderList.value = res.data.records || []
+                total.value = res.data.total || 0
+            }
         } finally {
             loading.value = false
         }
     }
 
+    /**
+     * 切换标签页
+     */
     const handleTabChange = () => {
+        pageNum.value = 1
         loadOrderList()
     }
 
-    const handleSearch = () => {
-        loadOrderList()
+    /**
+     * 打开评价对话框
+     */
+    const handleComment = (shopOrder: ShopOrderVO) => {
+        currentShopOrder.value = shopOrder
+        commentForm.value = {
+            rate: shopOrder.rate || 5,
+            comment: shopOrder.comment || '',
+        }
+        commentDialogVisible.value = true
     }
 
-    const handleReset = () => {
-        searchKeyword.value = ''
-        loadOrderList()
-    }
+    /**
+     * 提交评价
+     */
+    const submitComment = async () => {
+        if (!currentShopOrder.value) return
 
-    const handlePay = async (orderNo: string) => {
+        if (!commentForm.value.comment.trim()) {
+            ElMessage.warning('请输入评价内容')
+            return
+        }
+
+        commentLoading.value = true
         try {
-            await ElMessageBox.confirm('确定要支付该订单吗？', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'info',
-            })
-            await payOrder(orderNo, 'alipay')
-            ElMessage.success('支付成功')
-            await loadOrderList()
-        } catch (error) {
-            if (error !== 'cancel') {
-                console.error('支付失败:', error)
+            const res = await commentOrder(
+                currentShopOrder.value.orderId,
+                commentForm.value.rate,
+                commentForm.value.comment
+            )
+
+            if (res && res.data) {
+                ElMessage.success('评价成功')
+                commentDialogVisible.value = false
+                await loadOrderList()
             }
+        } finally {
+            commentLoading.value = false
         }
     }
 
-    const handleCancel = async (orderNo: string) => {
-        try {
-            await ElMessageBox.confirm('确定要取消该订单吗？', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-            })
-            await cancelOrder(orderNo)
-            ElMessage.success('取消成功')
-            await loadOrderList()
-        } catch (error) {
-            if (error !== 'cancel') {
-                console.error('取消失败:', error)
-            }
-        }
+    /**
+     * 处理支付
+     */
+    const handlePayment = (order: OrderAggregateVO) => {
+        currentPaymentOrder.value = order
+        paymentOrderNo.value = order.orderNo
+        paymentAmount.value = calculateOrderTotalPrice(order) / 100 // 分转元
+
+        // 计算商品总数量
+        paymentQuantity.value = order.shopOrders.reduce((total, shopOrder) => {
+            return total + calculateShopOrderItemCount(shopOrder)
+        }, 0)
+
+        paymentModalVisible.value = true
     }
 
-    const handleConfirm = async (orderNo: string) => {
-        try {
-            await ElMessageBox.confirm('确定已收到货物吗？', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'success',
-            })
-            await confirmReceipt(orderNo)
-            ElMessage.success('确认收货成功')
-            await loadOrderList()
-        } catch (error) {
-            if (error !== 'cancel') {
-                console.error('确认收货失败:', error)
-            }
-        }
-    }
+    /**
+     * 支付成功回调
+     */
+    const handlePaymentSuccess = async (orderNo: string) => {
+        ElMessage.success('支付成功！订单状态将自动更新')
 
-    const handleRefund = async (orderNo: string) => {
-        try {
-            const { value: reason } = await ElMessageBox.prompt('请输入退款原因', '申请退款', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                inputPlaceholder: '请输入退款原因',
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return '请输入退款原因'
-                    }
-                    return true
-                },
-            })
-            await applyRefund(orderNo, reason)
-            ElMessage.success('已提交退款申请')
-            await loadOrderList()
-        } catch (error) {
-            if (error !== 'cancel') {
-                console.error('申请退款失败:', error)
-            }
-        }
-    }
-
-    const getStatusTagType = (status: OrderStatus) => {
-        const typeMap: Record<OrderStatus, any> = {
-            [OrderStatus.PENDING_PAYMENT]: 'danger',
-            [OrderStatus.PENDING_SHIPMENT]: 'warning',
-            [OrderStatus.PENDING_RECEIPT]: 'primary',
-            [OrderStatus.PENDING_REVIEW]: 'warning',
-            [OrderStatus.PENDING_REFUND]: 'danger',
-            [OrderStatus.REFUNDED]: 'info',
-            [OrderStatus.CANCELLED]: 'info',
-            [OrderStatus.COMPLETED]: 'success',
-        }
-        return typeMap[status] || ''
+        // 延迟关闭弹窗并刷新订单列表
+        setTimeout(() => {
+            paymentModalVisible.value = false
+            loadOrderList()
+        }, 1500)
     }
 
     onMounted(() => {
@@ -383,13 +472,21 @@
         border-radius: 3px;
     }
 
-    :deep(.custom-input .el-input__wrapper) {
-        border-radius: 12px;
-        padding: 4px 12px;
-        box-shadow: 0 0 0 1px #f3f4f6 inset;
+    :deep(.custom-pagination) {
+        justify-content: center;
     }
 
-    :deep(.custom-input .el-input__wrapper.is-focus) {
-        box-shadow: 0 0 0 1px #f97316 inset !important;
+    :deep(.custom-pagination .el-pagination__total),
+    :deep(.custom-pagination .el-pagination__jump) {
+        color: #6b7280;
+    }
+
+    :deep(.custom-pagination .el-pager li.is-active) {
+        background-color: #f97316;
+        color: white;
+    }
+
+    :deep(.custom-pagination .el-pager li:hover) {
+        color: #f97316;
     }
 </style>

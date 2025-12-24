@@ -259,7 +259,7 @@
                             <el-tab-pane label="商品详情" name="detail">
                                 <div class="p-8">
                                     <!-- 商品描述 - 支持 HTML 内容 -->
-                                    <div 
+                                    <div
                                         v-if="product.description"
                                         class="prose max-w-none text-gray-700 leading-loose"
                                         v-html="product.description"
@@ -377,8 +377,9 @@
     import { fetchAddressList, type Address } from '@/api/address'
     import type { GoodsDetail, GoodsComment } from '@/api/goods'
     import { fetchGoodsDetail, fetchGoodsComments } from '@/api/goods'
-    import { createOrder } from '@/api/order'
+    import { createInstantBuyOrder } from '@/api/order'
     import { addFavorite, removeFavorite, checkFavoriteStatus } from '@/api/favorite'
+    import { addToCart } from '@/api/cart'
     import { useRoute, useRouter } from 'vue-router'
     import PaymentModal from './model/PaymentModal.vue'
 
@@ -406,12 +407,15 @@
             const res = await fetchAddressList()
             const defaultAddr = res.data.find((item) => item.isDefault)
             if (defaultAddr) {
-                selectedAddress.value = defaultAddr
+                selectedAddress.value = defaultAddr || null
             } else if (res.data.length > 0) {
-                selectedAddress.value = res.data[0]
+                selectedAddress.value = res.data[0] || null
+            } else {
+                selectedAddress.value = null
             }
-        } catch (error) {
-            console.error('Failed to load default address:', error)
+        } catch (err) {
+            console.error('Failed to load default address:', err)
+            selectedAddress.value = null
         }
     }
 
@@ -432,24 +436,24 @@
     // 评论懒加载相关
     const comments = ref<GoodsComment[]>([])
     const commentsPage = ref(1)
-    const commentsPageSize = 10
+    const commentsPageSize = ref(10)
     const commentsTotal = ref(0)
     const commentsLoading = ref(false)
     const commentsLoaded = ref(false)
 
-    const loadComments = async (page = 1) => {
+    const loadComments = async (page = 1): Promise<void> => {
         if (!goodsId.value) return
         try {
             commentsLoading.value = true
             const res = await fetchGoodsComments(goodsId.value, {
                 page,
-                pageSize: commentsPageSize,
+                pageSize: commentsPageSize.value,
             })
             const data = res.data
             if (data && Array.isArray(data.records)) {
                 if (page === 1) comments.value = data.records
                 else comments.value.push(...data.records)
-                commentsTotal.value = (data as any).total ?? commentsTotal.value
+                commentsTotal.value = data.total ?? commentsTotal.value
                 commentsPage.value = page
                 commentsLoaded.value = true
             }
@@ -534,27 +538,57 @@
             return
         }
 
+        if (!product.value?.shopId) {
+            ElMessage.warning('商品信息加载中，请稍后再试')
+            return
+        }
+
         buyLoading.value = true
         try {
-            const res = await createOrder({
-                goodsId: goodsId.value,
-                addressId: selectedAddress.value.id,
-                quantity: quantity.value,
-                amount: totalAmount.value,
-            })
-            if (res && res.orderNo) {
-                currentOrderNo.value = res.orderNo
+            const res = await createInstantBuyOrder(
+                selectedAddress.value.id,
+                Number(product.value.shopId),
+                Number(goodsId.value),
+                quantity.value
+            )
+            if (res && res.data) {
+                currentOrderNo.value = res.data.orderNo
                 paymentVisible.value = true
             }
-        } catch (error) {
-            console.error('创建订单失败:', error)
+        } catch (err) {
+            console.error('创建订单失败:', err)
         } finally {
             buyLoading.value = false
         }
     }
 
-    const handleAddToCart = () => {
-        ElMessage.success('已加入购物车')
+    const handleAddToCart = async () => {
+        if (!product.value) {
+            ElMessage.error('商品信息加载失败')
+            return
+        }
+
+        if (quantity.value < 1) {
+            ElMessage.warning('请选择购买数量')
+            return
+        }
+
+        if (quantity.value > product.value.inventory) {
+            ElMessage.warning('库存不足')
+            return
+        }
+
+        try {
+            await addToCart({
+                goodsId: Number(goodsId.value),
+                storeId: Number(product.value.shopId),
+                quantity: quantity.value,
+            })
+            ElMessage.success('已加入购物车')
+        } catch (err) {
+            console.error('添加购物车失败:', err)
+            // 错误信息已由 http 拦截器处理
+        }
     }
 
     const handleFavorite = async () => {

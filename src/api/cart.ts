@@ -1,93 +1,119 @@
 import { http } from '@/utils/http'
 import type { ResponseData } from '@/utils/http'
 
-// 购物车商品项类型
-export interface CartItem {
-    id: string
-    goodsId: string
-    goodsName: string
-    mainImg: string
-    price: number // 单位: 分
-    quantity: number
-    selected: boolean
-    shopId: string
-    shopName: string
-    inventory: number
-    options?: string[]
+// 数据转换函数：确保 number 类型字段正确转换
+function transformCartItem(item: any): CartItem {
+    return {
+        shopId: Number(item.shopId),
+        shopName: item.shopName,
+        productId: Number(item.productId),
+        productName: item.productName,
+        price: Number(item.price),
+        selected: Boolean(item.selected),
+        stock: Number(item.stock),
+        quantity: Number(item.quantity),
+        mainImage: item.mainImage,
+        unit: item.unit
+    }
 }
 
-// 购物车统计信息
-export interface CartSummary {
-    totalItems: number
-    totalPrice: number
-    selectedItems: number
-    selectedPrice: number
+function transformCartResponse(data: any): CartResponse {
+    return {
+        shops: data.shops.map((shop: any) => ({
+            shopId: Number(shop.shopId),
+            shopName: shop.shopName,
+            items: shop.items.map(transformCartItem)
+        }))
+    }
+}
+
+// 购物车商品项类型
+export interface CartItem {
+    shopId: number
+    shopName: string
+    productId: number
+    productName: string
+    price: number // 单位: 分
+    selected: boolean
+    stock: number
+    quantity: number
+    mainImage: string
+    unit: string
+}
+
+// 购物车响应（按店铺分组）
+export interface CartResponse {
+    shops: Array<{
+        shopId: number
+        shopName: string
+        items: CartItem[]
+    }>
 }
 
 // 添加到购物车的请求参数
 export interface AddToCartParams {
-    goodsId: string
+    goodsId: number
+    storeId: number
+    quantity: number
+}
+
+// 更新购物车项的请求参数
+export interface UpdateCartItemParams {
+    storeId: number
+    goodsId: number
     quantity: number
 }
 
 /**
- * 获取购物车商品列表
+ * 获取购物车
  * GET /cart
  */
-export function fetchCartItems(): Promise<ResponseData<CartItem[]>> {
-    return http.get<CartItem[]>('/cart')
+export async function fetchCart(): Promise<ResponseData<CartResponse>> {
+    const response = await http.get<any>('/cart')
+    return {
+        ...response,
+        data: transformCartResponse(response.data)
+    }
 }
 
 /**
  * 添加商品到购物车
  * POST /cart
  */
-export function addToCart(params: AddToCartParams): Promise<ResponseData<CartItem>> {
-    return http.post<CartItem>('/cart', params)
+export async function addToCart(params: AddToCartParams): Promise<ResponseData<CartItem>> {
+    const response = await http.post<any>('/cart', params)
+    return {
+        ...response,
+        data: transformCartItem(response.data)
+    }
 }
 
 /**
- * 更新购物车商品（数量、选中状态等）
- * PATCH /cart/:id
+ * 更新购物车项（数量）
+ * PUT /cart
  */
-export function updateCartItem(
-    id: string,
-    data: Partial<Pick<CartItem, 'quantity' | 'selected'>>
+export async function updateCartItem(
+    params: UpdateCartItemParams
 ): Promise<ResponseData<CartItem>> {
-    return http.put<CartItem>(`/cart/${id}`, data)
+    const response = await http.put<any>('/cart', params)
+    return {
+        ...response,
+        data: transformCartItem(response.data)
+    }
 }
 
 /**
- * 删除购物车商品
- * DELETE /cart/:id
+ * 删除购物车项
+ * DELETE /cart/{storeId}/{goodsId}
  */
-export function removeCartItem(id: string): Promise<ResponseData<void>> {
-    return http.delete<void>(`/cart/${id}`)
+export function removeCartItem(storeId: number, goodsId: number): Promise<ResponseData<void>> {
+    return http.delete<void>(`/cart/${storeId}/${goodsId}`)
 }
 
 /**
- * 批量更新购物车（如全选/取消全选）
- * PATCH /cart
- */
-export function updateCartBatch(data: {
-    ids?: string[]
-    selected?: boolean
-}): Promise<ResponseData<void>> {
-    return http.put<void>('/cart', data)
-}
-
-/**
- * 批量删除购物车商品
+ * 清空购物车
  * DELETE /cart
  */
-export function removeCartItems(ids: string[]): Promise<ResponseData<void>> {
-    return http.delete<void>('/cart', { ids })
-}
-
-/**
- * 获取购物车统计信息
- * GET /cart/summary
- */
-export function getCartSummary(): Promise<ResponseData<CartSummary>> {
-    return http.get<CartSummary>('/cart/summary')
+export function clearCart(): Promise<ResponseData<void>> {
+    return http.delete<void>('/cart')
 }

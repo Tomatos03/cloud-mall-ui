@@ -2,7 +2,7 @@
     import { ref, watch } from 'vue'
     import { ElMessage } from 'element-plus'
     import { Check, Wallet, CreditCard, CircleCheckFilled, Loading } from '@element-plus/icons-vue'
-    import { payOrder } from '@/api/order'
+    import { getPaymentStatus } from '@/api/order'
 
     const props = defineProps<{
         visible: boolean
@@ -63,16 +63,22 @@
         currentStep.value = PayStep.QRCODE
     }
 
-    // 第二步：确认支付（模拟扫码后点击确认）
+    // 第二步：确认支付（用户扫码后点击"我已支付"）
     const handleConfirmPay = async () => {
         loading.value = true
         try {
-            await payOrder(props.orderNo, selectedMethod.value)
-            currentStep.value = PayStep.SUCCESS
-            emit('success', props.orderNo)
-        } catch (error) {
-            console.error('支付确认失败:', error)
-            ElMessage.error('支付确认失败，请稍后重试')
+            // 查询支付状态
+            const res = await getPaymentStatus(props.orderNo)
+            
+            if (res && res.data === true) {
+                // 支付成功
+                currentStep.value = PayStep.SUCCESS
+                emit('success', props.orderNo)
+                ElMessage.success('支付成功')
+            } else {
+                // 支付未完成
+                ElMessage.warning('支付未完成，请先扫码支付后再确认')
+            }
         } finally {
             loading.value = false
         }
