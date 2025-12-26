@@ -13,10 +13,10 @@
                     v-if="loading"
                     class="flex flex-col items-center justify-center py-32 bg-white rounded-2xl shadow-sm border border-gray-100"
                 >
-                    <el-icon class="text-4xl text-orange-500 animate-spin">
+                    <el-icon class="text-4xl text-orange-600 animate-spin">
                         <Loading />
                     </el-icon>
-                    <p class="mt-4 text-gray-400 font-medium">正在为您加载商品详情...</p>
+                    <p class="mt-4 text-gray-600 font-medium">正在为您加载商品详情...</p>
                 </div>
 
                 <div v-else-if="product" class="space-y-6">
@@ -30,7 +30,7 @@
                                 <div class="relative cursor-pointer" @click="goToStore">
                                     <img
                                         class="w-14 h-14 rounded-full border-2 border-orange-50 shadow-sm object-cover"
-                                        :src="product.shopAvatar"
+                                        :src="getImageURL(product.storeAvatarUrl)"
                                         alt="店铺头像"
                                     />
                                     <div
@@ -41,24 +41,24 @@
                                 </div>
                                 <div class="cursor-pointer" @click="goToStore">
                                     <h2 class="text-lg font-bold text-gray-800">
-                                        {{ product.shopName }}
+                                        {{ product.storeName }}
                                     </h2>
                                     <div class="flex items-center gap-2">
                                         <el-tag
                                             size="small"
                                             type="warning"
                                             effect="plain"
-                                            class="border-orange-200! text-orange-500! bg-orange-50!"
+                                            class="border-orange-400! text-orange-700! bg-orange-50!"
                                             >官方旗舰店</el-tag
                                         >
-                                        <span class="text-xs text-gray-400">综合体验 9.8</span>
+                                        <span class="text-xs text-gray-500">综合体验 9.8</span>
                                     </div>
                                 </div>
                             </div>
                             <el-button
                                 type="primary"
                                 plain
-                                class="border-orange-500! text-orange-500! hover:bg-orange-50! rounded-xl! px-6"
+                                class="border-orange-600! text-orange-600! hover:bg-orange-50! rounded-xl! px-6"
                                 @click="goToStore"
                             >
                                 进入店铺
@@ -77,7 +77,7 @@
                                         v-if="imageList.length > 0"
                                         :src="imageList[activeIndex]"
                                         alt="商品主图"
-                                        class="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                                        class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                                     />
                                     <div
                                         v-else
@@ -116,29 +116,29 @@
                                     <!-- 商品标题 -->
                                     <div>
                                         <h1
-                                            class="text-2xl font-extrabold text-gray-900 leading-tight mb-3"
+                                            class="text-2xl font-extrabold text-gray-900 leading-tight mb-3 drop-shadow-sm"
                                         >
                                             {{ product.goodsName }}
                                         </h1>
-                                        <p class="text-gray-500 leading-relaxed">
+                                        <p class="text-gray-700 leading-relaxed">
                                             {{ product.goodsInfo }}
                                         </p>
                                     </div>
 
                                     <!-- 价格 -->
                                     <div
-                                        class="bg-orange-50/50 p-6 rounded-2xl border border-orange-100/50"
+                                        class="bg-orange-50 p-6 rounded-2xl border border-orange-100"
                                     >
                                         <div class="flex items-baseline gap-1">
-                                            <span class="text-orange-600 text-sm font-bold">¥</span>
+                                            <span class="text-orange-700 text-sm font-bold">¥</span>
                                             <span
-                                                class="text-orange-600 text-4xl font-black tracking-tight"
-                                                >{{ product.price }}</span
+                                                class="text-orange-700 text-4xl font-black tracking-tight"
+                                                >{{ fenToYuan(product.price) }}</span
                                             >
-                                            <span class="text-gray-400 text-sm ml-2">起</span>
+                                            <span class="text-gray-500 text-sm ml-2">起</span>
                                         </div>
                                         <div
-                                            class="mt-2 flex items-center gap-4 text-xs text-orange-600/70"
+                                            class="mt-2 flex items-center gap-4 text-xs text-orange-700"
                                         >
                                             <span class="flex items-center gap-1"
                                                 ><el-icon><CircleCheck /></el-icon> 官方正品</span
@@ -155,38 +155,38 @@
                                     <!-- 商品规格选择 (已简化为数量选择) -->
                                     <div class="space-y-5">
                                         <div class="flex items-center">
-                                            <span class="text-gray-500 w-20 font-medium"
+                                            <span class="text-gray-700 w-20 font-medium"
                                                 >配送至</span
                                             >
                                             <div
-                                                class="flex-1 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:border-orange-200 transition-colors group"
+                                                class="flex-1 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer hover:border-orange-300 transition-colors group"
                                                 @click="addressVisible = true"
                                             >
                                                 <div
                                                     class="flex items-center gap-2 overflow-hidden"
                                                 >
-                                                    <el-icon class="text-orange-500 shrink-0"
+                                                    <el-icon class="text-orange-600 shrink-0"
                                                         ><Location
                                                     /></el-icon>
                                                     <span
                                                         v-if="selectedAddress"
-                                                        class="text-gray-700 truncate"
+                                                        class="text-gray-800 truncate"
                                                     >
                                                         {{ selectedAddress.receiver }} -
                                                         {{ selectedAddress.detail }}
                                                     </span>
-                                                    <span v-else class="text-gray-400"
+                                                    <span v-else class="text-gray-500"
                                                         >请选择收货地址</span
                                                     >
                                                 </div>
                                                 <el-icon
-                                                    class="text-gray-300 group-hover:text-orange-400 transition-colors"
+                                                    class="text-gray-400 group-hover:text-orange-500 transition-colors"
                                                     ><ArrowRight
                                                 /></el-icon>
                                             </div>
                                         </div>
                                         <div class="flex items-center">
-                                            <span class="text-gray-500 w-20 font-medium"
+                                            <span class="text-gray-700 w-20 font-medium"
                                                 >购买数量</span
                                             >
                                             <el-input-number
@@ -198,19 +198,19 @@
                                         </div>
                                         <div class="flex gap-8 text-sm pt-2">
                                             <div class="flex flex-col">
-                                                <span class="text-gray-400 mb-1">累计销量</span>
+                                                <span class="text-gray-500 mb-1">累计销量</span>
                                                 <span class="text-gray-900 font-bold">{{
                                                     product.sale
                                                 }}</span>
                                             </div>
                                             <div class="flex flex-col">
-                                                <span class="text-gray-400 mb-1">库存数量</span>
+                                                <span class="text-gray-500 mb-1">库存数量</span>
                                                 <span class="text-gray-900 font-bold">{{
                                                     product.inventory
                                                 }}</span>
                                             </div>
                                             <div class="flex flex-col">
-                                                <span class="text-gray-400 mb-1">上架日期</span>
+                                                <span class="text-gray-500 mb-1">上架日期</span>
                                                 <span class="text-gray-900 font-bold">{{
                                                     product.createTime
                                                 }}</span>
@@ -231,15 +231,15 @@
                                     </el-button>
                                     <el-button
                                         type="warning"
-                                        class="flex-1! bg-orange-50! border-orange-200! text-orange-600! hover:bg-orange-100! rounded-xl! h-12! font-bold text-lg"
+                                        class="flex-1! bg-orange-50! border-orange-300! text-orange-700! hover:bg-orange-100! rounded-xl! h-12! font-bold text-lg"
                                         @click="handleAddToCart"
                                     >
                                         加入购物车
                                     </el-button>
                                     <el-button
-                                        class="rounded-xl! h-12! px-6 hover:text-orange-500! hover:border-orange-200!"
+                                        class="rounded-xl! h-12! px-6 hover:text-orange-600! hover:border-orange-300!"
                                         :class="{
-                                            'text-orange-500! border-orange-200!': isFavorite,
+                                            'text-orange-600! border-orange-300!': isFavorite,
                                         }"
                                         :icon="Star"
                                         @click="handleFavorite"
@@ -261,12 +261,12 @@
                                     <!-- 商品描述 - 支持 HTML 内容 -->
                                     <div
                                         v-if="product.description"
-                                        class="prose max-w-none text-gray-700 leading-loose"
+                                        class="prose max-w-none text-gray-800 leading-loose"
                                         v-html="product.description"
                                     >
                                     </div>
                                     <div v-else class="prose max-w-none">
-                                        <p class="text-gray-700 leading-loose text-lg">
+                                        <p class="text-gray-800 leading-loose text-lg">
                                             {{ product.goodsInfo || '暂无商品详情' }}
                                         </p>
                                     </div>
@@ -291,7 +291,7 @@
                                                     <span class="font-bold text-gray-900">{{
                                                         comment.user
                                                     }}</span>
-                                                    <span class="text-xs text-gray-400">{{
+                                                    <span class="text-xs text-gray-500">{{
                                                         comment.time
                                                     }}</span>
                                                 </div>
@@ -301,7 +301,7 @@
                                                     size="small"
                                                     class="mb-3"
                                                 />
-                                                <p class="text-gray-600 leading-relaxed">
+                                                <p class="text-gray-700 leading-relaxed">
                                                     {{ comment.content }}
                                                 </p>
                                             </div>
@@ -311,9 +311,9 @@
                                         v-else
                                         class="flex flex-col items-center justify-center py-20 text-gray-400"
                                     >
-                                        <el-icon class="text-5xl mb-4"><ChatDotRound /></el-icon>
-                                        <p v-if="!commentsLoading">暂无评价</p>
-                                        <p v-else>加载中...</p>
+                                        <el-icon class="text-5xl mb-4 text-gray-300"><ChatDotRound /></el-icon>
+                                        <p v-if="!commentsLoading" class="text-gray-500">暂无评价</p>
+                                        <p v-else class="text-gray-500">加载中...</p>
                                     </div>
                                 </div>
                             </el-tab-pane>
@@ -329,12 +329,12 @@
                     <div
                         class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-4"
                     >
-                        <el-icon class="text-4xl text-gray-200"><Warning /></el-icon>
+                        <el-icon class="text-4xl text-gray-300"><Warning /></el-icon>
                     </div>
-                    <p class="text-gray-500 text-lg">抱歉，该商品不存在或已下架</p>
+                    <p class="text-gray-600 text-lg font-medium">抱歉，该商品不存在或已下架</p>
                     <el-button
                         type="primary"
-                        class="mt-6 bg-orange-500! border-orange-500! rounded-xl!"
+                        class="mt-6 bg-orange-600! border-orange-600! rounded-xl!"
                         @click="$router.push('/')"
                         >返回首页</el-button
                     >
@@ -382,6 +382,8 @@
     import { addToCart } from '@/api/cart'
     import { useRoute, useRouter } from 'vue-router'
     import PaymentModal from './model/PaymentModal.vue'
+    import { getImageURL, getImageURLs } from '@/utils/image'
+    import { fenToYuan } from '@/utils/price'
 
     const loading = ref(true)
     const buyLoading = ref(false)
@@ -424,11 +426,11 @@
         const imgs: string[] = []
         // 确保主图在第一位
         if (product.value.mainImg) {
-            imgs.push(product.value.mainImg)
+            imgs.push(getImageURL(product.value.mainImg))
         }
         // 添加所有子图,不去重
         if (product.value.subImg && Array.isArray(product.value.subImg)) {
-            imgs.push(...product.value.subImg)
+            imgs.push(...getImageURLs(product.value.subImg))
         }
         return imgs
     })
@@ -474,8 +476,8 @@
     const router = useRouter()
 
     const goToStore = () => {
-        if (product.value?.shopId) {
-            router.push({ name: 'Store', params: { storeId: product.value.shopId } })
+        if (product.value?.storeId) {
+            router.push({ name: 'Store', params: { storeId: product.value.storeId } })
         } else {
             ElMessage.warning('店铺信息加载中或不存在')
         }
@@ -538,7 +540,7 @@
             return
         }
 
-        if (!product.value?.shopId) {
+        if (!product.value?.storeId) {
             ElMessage.warning('商品信息加载中，请稍后再试')
             return
         }
@@ -547,7 +549,7 @@
         try {
             const res = await createInstantBuyOrder(
                 selectedAddress.value.id,
-                Number(product.value.shopId),
+                Number(product.value.storeId),
                 Number(goodsId.value),
                 quantity.value
             )
@@ -581,7 +583,7 @@
         try {
             await addToCart({
                 goodsId: Number(goodsId.value),
-                storeId: Number(product.value.shopId),
+                storeId: Number(product.value.storeId),
                 quantity: quantity.value,
             })
             ElMessage.success('已加入购物车')
@@ -592,7 +594,7 @@
     }
 
     const handleFavorite = async () => {
-        if (!goodsId.value || !product.value?.shopId) {
+        if (!goodsId.value || !product.value?.storeId) {
             ElMessage.warning('商品信息加载中，请稍后再试')
             return
         }
@@ -608,7 +610,7 @@
                 }
             } else {
                 // 添加收藏
-                const res = await addFavorite(goodsId.value, product.value.shopId)
+                const res = await addFavorite(goodsId.value, product.value.storeId)
                 if (res.data) {
                     isFavorite.value = true
                     favoriteId.value = res.data.id

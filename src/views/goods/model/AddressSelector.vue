@@ -36,8 +36,12 @@
                         <CircleCheckFilled />
                     </el-icon>
                 </div>
-                <div class="text-sm text-gray-600 leading-relaxed">
-                    {{ item.detail }}
+                <div class="text-sm leading-relaxed">
+                    <div class="text-gray-400 text-xs mb-1 flex items-center gap-1">
+                        <el-icon :size="12"><Location /></el-icon>
+                        {{ getRegionPath(item.regionCode) }}
+                    </div>
+                    <div class="text-gray-700 font-medium">{{ item.detail }}</div>
                 </div>
             </div>
 
@@ -68,6 +72,7 @@
     import { ref, computed, watch } from 'vue'
     import { CircleCheckFilled, Location } from '@element-plus/icons-vue'
     import { fetchAddressList, type Address } from '@/api/address'
+    import { getRegionPath } from '@/utils/china-region-data'
 
     const props = defineProps<{
         modelValue: Address | null

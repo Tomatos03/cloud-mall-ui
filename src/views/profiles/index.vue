@@ -16,7 +16,7 @@
                             <div class="p-6 border-b border-gray-50 flex flex-col items-center">
                                 <el-avatar
                                     :size="80"
-                                    :src="userStore.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
+                                    :src="getImageURL(userStore.avatarUrl) || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
                                     class="border-4 border-orange-50 mb-4"
                                 />
                                 <h2 class="text-lg font-bold text-gray-800">{{ userStore.nickname || '未设置昵称' }}</h2>
@@ -75,6 +75,7 @@
     import { useRouter, useRoute } from 'vue-router'
     import { useUserStore } from '@/stores/user'
     import { ElMessageBox, ElMessage, ElIcon } from 'element-plus'
+    import { getImageURL } from '@/utils/image'
     import {
         User,
         Location,

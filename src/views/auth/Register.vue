@@ -90,7 +90,7 @@
                 ElMessage.success('注册成功，请登录')
                 // 注册成功后导航到登录页面（并在 url 中表明 mode）
                 router.push({ name: 'Auth', params: { mode: 'login' } })
-            } catch (error) {
+            } catch {
                 ElMessage.error('注册失败')
             }
         })

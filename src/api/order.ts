@@ -5,19 +5,17 @@ import http from '@/utils/http'
  */
 export enum OrderStatus {
     /** 待支付 */
-    PENDING_PAYMENT = 'PENDING_PAYMENT',
+    CREATED = 'CREATED',
     /** 待发货 */
-    PENDING_SHIPMENT = 'PENDING_SHIPMENT',
-    /** 已发货/待收货 */
+    PAID = 'PAID',
+    /** 待收货 */
     SHIPPED = 'SHIPPED',
     /** 已完成 */
-    COMPLETED = 'COMPLETED',
-    /** 已评价 */
-    RATED = 'RATED',
-    /** 已退款 */
-    REFUNDED = 'REFUNDED',
+    FINISHED = 'FINISHED',
     /** 已取消 */
-    CANCELLED = 'CANCELLED',
+    CANCELED = 'CANCELED',
+    /** 已关闭 */
+    CLOSED = 'CLOSED',
 }
 
 /**
@@ -248,17 +246,7 @@ export function createCartOrder(
  * @returns 订单聚合视图分页结果
  */
 export async function pageQueryOrders(params: OrderPageParams = {}) {
-    // 构建查询参数，只添加有值的参数
-    const queryParams: Record<string, string | number> = {}
-
-    if (params.pageNum !== undefined) queryParams.pageNum = params.pageNum
-    if (params.pageSize !== undefined) queryParams.pageSize = params.pageSize
-    if (params.orderNo) queryParams.orderNo = params.orderNo
-    if (params.status) queryParams.status = params.status
-    if (params.startTime) queryParams.startTime = params.startTime
-    if (params.endTime) queryParams.endTime = params.endTime
-
-    const res = await http.get<PageResult<OrderAggregateVO>>('/order/page', queryParams)
+    const res = await http.get<PageResult<OrderAggregateVO>>('/order/page', params)
 
     // 转换数据类型
     if (res && res.data && res.data.records) {
@@ -273,34 +261,39 @@ export async function pageQueryOrders(params: OrderPageParams = {}) {
 }
 
 /**
- * 订单评价 - POST /web/order/comment
- * @param orderId 订单ID
+ * 确认收货 - POST /order/receive
+ * @param orderNo 子订单号
+ * @returns 是否成功
+ */
+export function receiveOrder(orderNo: string) {
+    return http.post<boolean>(`/order/confirm/${orderNo}`)
+}
+
+/**
+ * 评价订单 - POST /order/comment
+ * @param orderId 子订单ID
  * @param rate 评分 1-5
  * @param comment 评价内容
  * @returns 是否成功
  */
 export function commentOrder(orderId: number, rate: number, comment: string) {
-    return http.post<boolean>('/order/comment', null, {
-        params: {
-            orderId,
-            rate,
-            comment,
-        }
+    return http.post<boolean>('/order/comment', {
+        orderId,
+        rate,
+        comment,
     })
 }
 
 /**
- * 订单回复 - POST /web/order/reply
+ * 订单回复 - POST /order/reply
  * @param orderId 订单ID
  * @param reply 回复内容
  * @returns 是否成功
  */
 export function replyOrder(orderId: number, reply: string) {
-    return http.post<boolean>('/order/reply', null, {
-        params: {
-            orderId,
-            reply,
-        }
+    return http.post<boolean>('/order/reply', {
+        orderId,
+        reply,
     })
 }
 
@@ -367,13 +360,12 @@ export function getPaymentStatus(orderNo: string) {
  */
 export function getOrderStatusText(status: OrderStatus): string {
     const statusTextMap: Record<OrderStatus, string> = {
-        [OrderStatus.PENDING_PAYMENT]: '待支付',
-        [OrderStatus.PENDING_SHIPMENT]: '待发货',
+        [OrderStatus.CREATED]: '待支付',
+        [OrderStatus.PAID]: '待发货',
         [OrderStatus.SHIPPED]: '待收货',
-        [OrderStatus.COMPLETED]: '已完成',
-        [OrderStatus.RATED]: '已评价',
-        [OrderStatus.REFUNDED]: '已退款',
-        [OrderStatus.CANCELLED]: '已取消',
+        [OrderStatus.FINISHED]: '已完成',
+        [OrderStatus.CANCELED]: '已取消',
+        [OrderStatus.CLOSED]: '已关闭',
     }
     return statusTextMap[status] || '未知状态'
 }
@@ -385,15 +377,24 @@ export function getOrderStatusText(status: OrderStatus): string {
  */
 export function getOrderStatusTagType(status: OrderStatus): string {
     const typeMap: Record<OrderStatus, string> = {
-        [OrderStatus.PENDING_PAYMENT]: 'danger',
-        [OrderStatus.PENDING_SHIPMENT]: 'warning',
+        [OrderStatus.CREATED]: 'danger',
+        [OrderStatus.PAID]: 'warning',
         [OrderStatus.SHIPPED]: 'primary',
-        [OrderStatus.COMPLETED]: 'success',
-        [OrderStatus.RATED]: 'success',
-        [OrderStatus.REFUNDED]: 'info',
-        [OrderStatus.CANCELLED]: 'info',
+        [OrderStatus.FINISHED]: 'success',
+        [OrderStatus.CANCELED]: 'info',
+        [OrderStatus.CLOSED]: 'info',
     }
     return typeMap[status] || ''
+}
+
+/**
+ * 判断子订单是否有效（可支付/可计算金额）
+ * @param shopOrder 店铺订单
+ * @returns 是否有效
+ */
+export function isShopOrderValid(shopOrder: ShopOrderVO): boolean {
+    // 排除已取消和已关闭的子订单
+    return shopOrder.status !== OrderStatus.CANCELED && shopOrder.status !== OrderStatus.CLOSED
 }
 
 /**
@@ -406,17 +407,19 @@ export function getOrderType(orderAggregateVO: OrderAggregateVO): OrderType {
 }
 
 /**
- * 计算订单总价（前端计算）
+ * 计算订单总价（前端计算）- 排除已取消/已关闭的子订单
  * @param orderAggregateVO 订单聚合视图
  * @returns 订单总价（单位：分）
  */
 export function calculateOrderTotalPrice(orderAggregateVO: OrderAggregateVO): number {
-    return orderAggregateVO.shopOrders.reduce((sum, shopOrder) => {
-        const shopTotal = shopOrder.items.reduce((itemSum, item) => {
-            return itemSum + item.totalPrice
+    return orderAggregateVO.shopOrders
+        .filter(isShopOrderValid) // 只计算有效的子订单
+        .reduce((sum, shopOrder) => {
+            const shopTotal = shopOrder.items.reduce((itemSum, item) => {
+                return itemSum + item.totalPrice
+            }, 0)
+            return sum + shopTotal
         }, 0)
-        return sum + shopTotal
-    }, 0)
 }
 
 /**
@@ -431,14 +434,16 @@ export function calculateShopOrderTotal(shopOrder: ShopOrderVO): number {
 }
 
 /**
- * 计算订单商品项总数（前端计算）
+ * 计算订单商品项总数（前端计算）- 排除已取消/已关闭的子订单
  * @param orderAggregateVO 订单聚合视图
  * @returns 商品项总数
  */
 export function calculateOrderItemCount(orderAggregateVO: OrderAggregateVO): number {
-    return orderAggregateVO.shopOrders.reduce((count, shopOrder) => {
-        return count + shopOrder.items.length
-    }, 0)
+    return orderAggregateVO.shopOrders
+        .filter(isShopOrderValid) // 只计算有效的子订单
+        .reduce((count, shopOrder) => {
+            return count + shopOrder.items.length
+        }, 0)
 }
 
 /**
@@ -450,6 +455,24 @@ export function calculateShopOrderItemCount(shopOrder: ShopOrderVO): number {
     return shopOrder.items.reduce((count, item) => {
         return count + item.quantity
     }, 0)
+}
+
+/**
+ * 获取订单有效子订单列表（排除已取消/已关闭）
+ * @param orderAggregateVO 订单聚合视图
+ * @returns 有效的子订单列表
+ */
+export function getValidShopOrders(orderAggregateVO: OrderAggregateVO): ShopOrderVO[] {
+    return orderAggregateVO.shopOrders.filter(isShopOrderValid)
+}
+
+/**
+ * 获取订单无效子订单列表（已取消/已关闭）
+ * @param orderAggregateVO 订单聚合视图
+ * @returns 无效的子订单列表
+ */
+export function getInvalidShopOrders(orderAggregateVO: OrderAggregateVO): ShopOrderVO[] {
+    return orderAggregateVO.shopOrders.filter(shopOrder => !isShopOrderValid(shopOrder))
 }
 
 /**
@@ -477,7 +500,7 @@ export function formatTime(timeStr: string): string {
  * @returns 是否可以评价
  */
 export function canComment(shopOrder: ShopOrderVO): boolean {
-    return (shopOrder.status === OrderStatus.COMPLETED || shopOrder.status === OrderStatus.RATED) && !shopOrder.comment
+    return (shopOrder.status === OrderStatus.FINISHED || shopOrder.status === OrderStatus.CLOSED) && !shopOrder.comment
 }
 
 /**

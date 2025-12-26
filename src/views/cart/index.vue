@@ -131,8 +131,8 @@
                                             class="relative w-24 h-24 shrink-0 overflow-hidden rounded-2xl bg-gray-50 border border-gray-100"
                                         >
                                             <img
-                                                :src="item.mainImage"
-                                                :alt="item.productName"
+                                                :src="getImageURL(item.mainImage)"
+                                                :alt="item.goodsName"
                                                 class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
                                             />
                                         </div>
@@ -142,10 +142,10 @@
                                             <h3
                                                 class="text-base font-bold text-gray-800 mb-2 truncate group-hover:text-orange-500 transition-colors"
                                             >
-                                                {{ item.productName }}
+                                                {{ item.goodsName }}
                                             </h3>
                                             <div class="text-xs text-gray-400">
-                                                库存: {{ item.stock }} {{ item.unit }}
+                                                库存: {{ item.inventory }} {{ item.unit }}
                                             </div>
                                         </div>
 
@@ -346,7 +346,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { Shop, ShoppingCartFull, Delete, Plus, Minus, ArrowRight, Location, Edit } from '@element-plus/icons-vue'
@@ -356,11 +356,13 @@ import {
     fetchCart,
     updateCartItem,
     removeCartItem,
+    batchRemoveCartItems,
     type CartItem,
     type CartResponse,
 } from '@/api/cart'
 import { createCartOrder, type TradeShopItem } from '@/api/order'
 import { fetchAddressList, type Address } from '@/api/address'
+import { getImageURL } from '@/utils/image'
 
 const router = useRouter()
 const cartData = ref<CartResponse>({ shops: [] })
@@ -490,7 +492,7 @@ const handleRemoveItem = async (item: CartItem) => {
             cancelButtonText: '取消',
             type: 'warning',
         })
-        await removeCartItem(item.shopId, item.productId)
+        await removeCartItem({ storeId: item.shopId, goodsId: item.productId })
 
         // 从本地数据中移除
         cartData.value.shops.forEach((shop) => {
@@ -527,10 +529,11 @@ const handleBatchDelete = async () => {
         )
 
         // 批量删除所有选中的商品
-        const deletePromises = selectedItems.value.map((item) =>
-            removeCartItem(item.shopId, item.productId)
-        )
-        await Promise.all(deletePromises)
+        const itemsToDelete = selectedItems.value.map((item) => ({
+            storeId: item.shopId,
+            goodsId: item.productId
+        }))
+        await batchRemoveCartItems(itemsToDelete)
 
         // 重新加载购物车
         await loadCart()
@@ -562,7 +565,7 @@ const handleCheckout = async () => {
 
     // 按店铺分组选中的商品
     const cartItemsByStore = new Map<number, TradeShopItem[]>()
-    
+
     selectedItems.value.forEach((item) => {
         const storeId = item.shopId
         if (!cartItemsByStore.has(storeId)) {
@@ -600,18 +603,17 @@ const handleCheckout = async () => {
 const handlePaymentSuccess = async () => {
     showPaymentModal.value = false
 
-    // 删除已结算的商品
-    const deletePromises = selectedItems.value.map((item) =>
-        removeCartItem(item.shopId, item.productId)
-    )
-    await Promise.all(deletePromises)
-
-    // 重新加载购物车
-    await loadCart()
-
     // 跳转到订单列表页
     router.push({ path: '/profile', query: { tab: 'orders' } })
 }
+
+// 监听支付弹窗关闭，重新加载购物车（包括取消支付和关闭弹窗）
+watch(showPaymentModal, async (newVal) => {
+    if (!newVal) {
+        // 弹窗关闭时重新加载购物车
+        await loadCart()
+    }
+})
 
 // 跳转到商品详情
 const goToProduct = (productId: number) => {

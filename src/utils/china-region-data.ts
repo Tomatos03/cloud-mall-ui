@@ -3442,14 +3442,7 @@ export const REGION_NAME_TO_CODE: Record<string, string> = Object.entries(
     {} as Record<string, string>,
 )
 
-const specialRegionCode: Set<string> = new Set([
-    '110000',
-    '120000',
-    '310000',
-    '500000',
-    '820000',
-    '810000',
-])
+
 
 /**
  * 地区层级枚举
@@ -3504,14 +3497,13 @@ export function getRegionCodeByName(name: string): string | undefined {
  * @returns 地区层级
  */
 export function getRegionLevel(code: string): RegionLevel {
+    if (!code || typeof code !== 'string') {
+        return RegionLevel.THIRD_LEVEL
+    }
     if (code.endsWith('0000')) {
         return RegionLevel.FIRST_LEVEL
     }
-
-    // 判断是否存在00结尾, 如果不是一级行政区，不存在00结尾则为特殊的二级行政区
-    const specialCode = code.substring(0, 4) + '00'
-
-    if ((code.endsWith('00') && !code.endsWith('0000')) || !REGION_CODE_TO_NAME[specialCode]) {
+    if (code.endsWith('00')) {
         return RegionLevel.SECOND_LEVEL
     }
     return RegionLevel.THIRD_LEVEL
@@ -3537,17 +3529,27 @@ export function getRegionsByLevel(level: number): Region[] {
  * @returns 父级地区代码，如果没有父级则返回 undefined
  */
 function getParentCode(code: string): string | undefined {
+    if (!code || typeof code !== 'string') {
+        return undefined
+    }
     const level = getRegionLevel(code)
 
     if (level === RegionLevel.FIRST_LEVEL) {
         return undefined
     }
 
-    if (level === RegionLevel.SECOND_LEVEL) {
+    if (level === RegionLevel.THIRD_LEVEL) {
+        const cityCode = code.substring(0, 4) + '00'
+        // 如果二级城市代码存在，则返回二级城市代码
+        if (REGION_CODE_TO_NAME[cityCode]) {
+            return cityCode
+        }
+        // 否则直接返回一级省份代码（处理直辖市等特殊情况）
         return code.substring(0, 2) + '0000'
     }
 
-    return code.substring(0, 4) + '00'
+    // SECOND_LEVEL
+    return code.substring(0, 2) + '0000'
 }
 
 /**
@@ -3559,24 +3561,20 @@ function getParentCode(code: string): string | undefined {
 export function buildRegionTree(code: string): RegionNode[] {
     const tree: RegionNode[] = []
 
-    if (!code || !REGION_CODE_TO_NAME[code]) {
+    if (!code || typeof code !== 'string') {
         return tree
     }
 
-    let currentLevel = getRegionLevel(code)
     let currentCode: string | undefined = code
-    let currentName: string | undefined = REGION_CODE_TO_NAME[code]
-
-    while (currentLevel && currentCode && currentName) {
+    while (currentCode && REGION_CODE_TO_NAME[currentCode]) {
+        const name = REGION_CODE_TO_NAME[currentCode] as string
+        const level = getRegionLevel(currentCode)
         tree.push({
-            code: currentCode,
-            name: currentName,
-            level: currentLevel,
+            code: currentCode as string,
+            name: name,
+            level: level,
         })
-
-        currentLevel = getRegionLevel(code)
         currentCode = getParentCode(currentCode)
-        currentName = currentCode ? REGION_CODE_TO_NAME[currentCode] : undefined
     }
     return tree
 }
@@ -3588,6 +3586,9 @@ export function buildRegionTree(code: string): RegionNode[] {
  * @returns 地区路径字符串，例如："北京市/北京市/东城区"
  */
 export function getRegionPath(code: string, separator: string = '/'): string {
+    if (!code || typeof code !== 'string') {
+        return ''
+    }
     const tree = buildRegionTree(code)
     return tree
         .reverse()
@@ -3596,43 +3597,43 @@ export function getRegionPath(code: string, separator: string = '/'): string {
 }
 
 export function hasDirectRegions(code: string): boolean {
-    const level = getRegionLevel(code)
-    if (level == RegionLevel.FIRST_LEVEL) {
-        return true
-    }
-    if (level == RegionLevel.THIRD_LEVEL) {
+    if (!code || typeof code !== 'string') {
         return false
     }
-    return code.endsWith('00')
+    const level = getRegionLevel(code)
+    // 三级行政区已经是叶子节点
+    if (level === RegionLevel.THIRD_LEVEL) {
+        return false
+    }
+
+    // 检查是否有任何地区的父级是当前地区
+    for (const childCode of Object.keys(REGION_CODE_TO_NAME)) {
+        if (childCode === code) continue
+        if (getParentCode(childCode) === code) {
+            return true
+        }
+    }
+    return false
 }
 
 export function getDirectChildrenRegions(code: string): Region[] {
     const nodes: Region[] = []
-    if (!hasDirectRegions(code)) {
+
+    if (!code || typeof code !== 'string') {
         return nodes
     }
 
-    const level = getRegionLevel(code)
-    const commonStartWith =
-        level === RegionLevel.FIRST_LEVEL ? code.substring(0, 2) : code.substring(0, 4)
-    const commonEndWith =
-        level === RegionLevel.FIRST_LEVEL && !specialRegionCode.has(code) ? '00' : ''
-    console.log(code, specialRegionCode.has(code), level)
-    console.log(commonStartWith, commonEndWith)
-
+    // 遍历所有地区，寻找父级为当前代码的地区
     for (const [regionCode, name] of Object.entries(REGION_CODE_TO_NAME)) {
-        if (
-            name &&
-            regionCode &&
-            regionCode !== code &&
-            regionCode.endsWith(commonEndWith) &&
-            regionCode.startsWith(commonStartWith)
-        ) {
+        if (regionCode === code) continue
+        if (getParentCode(regionCode) === code) {
             nodes.push({
                 code: regionCode,
                 name,
             })
         }
     }
-    return nodes
+
+    // 排序以保证稳定性
+    return nodes.sort((a, b) => a.code.localeCompare(b.code))
 }

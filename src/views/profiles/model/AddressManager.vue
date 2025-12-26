@@ -98,9 +98,10 @@
                         <div class="flex items-start gap-2">
                             <el-icon class="mt-1 text-gray-400"><Location /></el-icon>
                             <div class="text-gray-600 leading-relaxed">
-                                <span class="font-medium text-gray-800">{{
-                                    address.regionCode
+                                <span v-if="address.regionCode" class="font-medium text-gray-800">{{
+                                    getRegionPath(String(address.regionCode))
                                 }}</span>
+                                <span v-else class="font-medium text-gray-400">未设置地区</span>
                                 <p class="mt-1">{{ address.detail }}</p>
                             </div>
                         </div>
@@ -244,6 +245,7 @@
     import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
     import { Plus, Edit, Delete, Location, Loading, User, Postcard } from '@element-plus/icons-vue'
     import AddressPicker from './AddressPicker.vue'
+    import { getRegionPath } from '@/utils/china-region-data'
     import {
         fetchAddressList,
         addAddress,
@@ -259,10 +261,17 @@
     const dialogVisible = ref(false)
     const dialogTitle = ref('新增收货地址')
     const isEdit = ref(false)
-    const currentEditId = ref<number | null>(null)
+    const currentEditId = ref<string | null>(null)
     const formRef = ref<FormInstance>()
 
-    const formData = reactive<Omit<Address, 'id'>>({
+    const formData = reactive<{
+        receiver: string
+        regionCode: string
+        detail: string
+        zipCode: string
+        phone: string
+        isDefault: boolean
+    }>({
         receiver: '',
         regionCode: '',
         detail: '',
@@ -318,18 +327,17 @@
         dialogTitle.value = '编辑收货地址'
         isEdit.value = true
         currentEditId.value = address.id
-        Object.assign(formData, {
-            receiver: address.receiver,
-            regionCode: address.regionCode || '',
-            detail: address.detail,
-            zipCode: address.zipCode,
-            phone: address.phone,
-            isDefault: address.isDefault,
-        })
+        // 确保所有数据类型正确，特别是 regionCode 转换为字符串
+        formData.receiver = address.receiver
+        formData.regionCode = String(address.regionCode || '')
+        formData.detail = address.detail
+        formData.zipCode = address.zipCode
+        formData.phone = address.phone
+        formData.isDefault = address.isDefault
         dialogVisible.value = true
     }
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string | number) => {
         try {
             await ElMessageBox.confirm('确定要删除这个收货地址吗？', '提示', {
                 confirmButtonText: '确定',
@@ -348,7 +356,7 @@
         }
     }
 
-    const handleSetDefault = async (id: number) => {
+    const handleSetDefault = async (id: string | number) => {
         try {
             await setDefaultAddress(id)
             ElMessage.success('设置成功')
@@ -368,6 +376,7 @@
             try {
                 submitting.value = true
 
+                // formData 中的 regionCode 已经是字符串，直接提交
                 if (isEdit.value && currentEditId.value) {
                     await updateAddress(currentEditId.value, formData)
                     ElMessage.success('修改成功')

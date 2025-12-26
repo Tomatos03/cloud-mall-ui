@@ -17,7 +17,7 @@
                 <div class="flex flex-col h-full">
                     <div class="flex-1 flex items-center justify-center mb-3">
                         <img
-                            :src="item.img || '/default-product.png'"
+                            :src="getImageURL(item.img) || getImageURL('/default-product.png')"
                             :alt="item.title"
                             class="max-w-full max-h-40 object-contain rounded"
                         />
@@ -40,6 +40,7 @@
     import { computed } from 'vue'
     import { useRouter } from 'vue-router'
     import type { GoodsItem } from '@/api/goods'
+    import { getImageURL } from '@/utils/image'
 
     const props = defineProps<{
         title?: string

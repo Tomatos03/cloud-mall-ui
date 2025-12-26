@@ -55,7 +55,7 @@
 
     // 接收父组件的 props
     const props = defineProps<{
-        regionCode?: string
+        regionCode?: string | number
     }>()
 
     interface RegionOption {
@@ -116,14 +116,15 @@
     }
 
     // 根据地区代码初始化选中值
-    const initByRegionCode = (code?: string) => {
+    const initByRegionCode = (code?: string | number) => {
         if (!code) {
             selectedCodes.value = []
             return
         }
 
-        const tree = buildRegionTree(code)
-        selectedCodes.value = tree.map((node) => node.code)
+        const codeStr = String(code)
+        const tree = buildRegionTree(codeStr)
+        selectedCodes.value = tree.reverse().map((node) => node.code)
     }
 
     // 初始化选中值

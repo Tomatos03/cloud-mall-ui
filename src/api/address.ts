@@ -4,11 +4,11 @@ import http from '@/utils/http'
  * 收货地址类型
  */
 export interface Address {
-    id: number
+    id: string
     /** 收货人 */
     receiver: string
     /** 地区代码（最后一级行政区代码） */
-    regionCode: string
+    regionCode: string | number
     /** 详细地址 */
     detail: string
     /** 邮编 */
@@ -36,20 +36,20 @@ export function addAddress(data: Omit<Address, 'id'>) {
 /**
  * 更新收货地址
  */
-export function updateAddress(id: number, data: Omit<Address, 'id'>) {
+export function updateAddress(id: string | number, data: Omit<Address, 'id'>) {
     return http.put<Address>(`/address/${id}`, data)
 }
 
 /**
  * 删除收货地址
  */
-export function deleteAddress(id: number) {
+export function deleteAddress(id: string | number) {
     return http.delete(`/address/${id}`)
 }
 
 /**
  * 设置默认地址
  */
-export function setDefaultAddress(id: number) {
+export function setDefaultAddress(id: string | number) {
     return http.put(`/address/setDefault/${id}`)
 }

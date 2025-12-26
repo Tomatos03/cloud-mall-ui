@@ -18,6 +18,7 @@
                             :interval="5000"
                             arrow="always"
                             :motion-blur="true"
+                            @banner-click="handleBannerClick"
                         />
                     </el-main>
 
@@ -32,7 +33,7 @@
                                     class="absolute -inset-0.5 bg-linear-to-r from-orange-400 to-pink-500 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"
                                 ></div>
                                 <img
-                                    :src="user.avatar"
+                                    :src="user.avatarUrl"
                                     :alt="user.nickname"
                                     class="relative rounded-full bg-gray-100 object-cover w-20 h-20 border-2 border-white shadow-sm"
                                 />
@@ -133,9 +134,9 @@
                         :category-id="cat.id"
                         :tabs="categoryTabsMap[cat.id] || []"
                         :goodsList="
-                            categoryProductsMap[cat.id]?.[categoryActiveTabMap[cat.id]] || []
+                            categoryProductsMap[cat.id]?.[categoryActiveTabMap[cat.id] || ''] || []
                         "
-                        :active-tab="categoryActiveTabMap[cat.id]"
+                        :active-tab="categoryActiveTabMap[cat.id] || ''"
                         @product-click="(goodsId, storeId) => handleGoodsClick(goodsId)"
                         @tab-change="(tabId) => handleTabChange(cat.id, tabId)"
                         @view-more="(categryName) => handleViewMore(categryName)"
@@ -168,6 +169,7 @@
     import { useRouter } from 'vue-router'
     import { Tickets, Star, Location } from '@element-plus/icons-vue'
     import type { GoodsItem } from '@/api/goods'
+    import { getImageURL } from '@/utils/image'
 
     const banners = ref<BannerItem[]>([])
     const router = useRouter()
@@ -203,7 +205,7 @@
         return {
             id: userStore.id ? parseInt(userStore.id) : 0,
             nickname: userStore.nickname || 'Guest',
-            avatar: userStore.avatar || '/default-avatar.png',
+            avatarUrl: getImageURL(userStore.avatarUrl) || getImageURL('/default-avatar.png'),
         }
     })
 
@@ -275,10 +277,16 @@
         router.push({ name: 'profile', query: { tab: 'address' } }).catch(() => {})
     }
 
+    const handleBannerClick = (banner: BannerItem) => {
+        if (banner.goodsId) {
+            handleGoodsClick(banner.goodsId.toString())
+        }
+    }
+
     // 来自 CategorySidebar 的选择回调：跳转到搜索页并带上 categoryId
     const handleCategorySelect = (payload: { id: string; name: string }) => {
         console.log(payload)
-        const { id, name } = payload
+        const { name } = payload
         // router.push({ path: '/search', query: { categoryId: id, keyword: name } })
         router.push({ name: 'Search', query: { keyword: name } })
     }

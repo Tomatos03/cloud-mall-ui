@@ -14,7 +14,7 @@ export interface BannerItem {
 export interface User {
     id: number
     nickname: string
-    avatar: string
+    avatarUrl: string
 }
 
 export interface CategoryItem {
@@ -51,10 +51,12 @@ export function fetchNotice() {
 // 商品类型
 export interface ProductItem {
     id: string
-    title: string
-    img: string
+    name: string
+    image: string
+    info: string
     price: string
-    // 可根据实际接口补充字段
+    originalPrice?: string
+    storeId: string
 }
 
 // 获取某分类及其所有子分类下的商品

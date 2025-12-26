@@ -12,7 +12,7 @@
                 <div class="relative group">
                     <el-avatar
                         :size="100"
-                        :src="formData.avatarUrl || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
+                        :src="getImageURL(formData.avatarUrl) || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
                         class="border-4 border-orange-50 shadow-sm"
                     />
                     <div
@@ -135,6 +135,7 @@
     import { Camera } from '@element-plus/icons-vue'
     import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
     import { getUserInfo, updateUserInfo, uploadAvatar, type UpdateUserInfoPayload } from '@/api/user'
+    import { getImageURL } from '@/utils/image'
 
     const userStore = useUserStore()
     const formRef = ref<FormInstance>()
@@ -179,14 +180,14 @@
                 phone: res.data.phone ?? '',        // 使用 ?? 处理 null
                 email: res.data.email ?? '',        // 使用 ?? 处理 null
                 bio: res.data.bio ?? '',            // 使用 ?? 处理 null
-                avatarUrl: res.data.avatarUrl ?? userStore.avatar ?? '',
+                avatarUrl: res.data.avatarUrl ?? userStore.avatarUrl ?? '',
             })
         } catch (error) {
             // HTTP 工具类已处理错误提示，这里仅使用 store 中的数据作为降级方案
             Object.assign(formData, {
                 id: userStore.id,
                 nickname: userStore.nickname,
-                avatarUrl: userStore.avatar ?? '',
+                avatarUrl: userStore.avatarUrl ?? '',
             })
         }
     }

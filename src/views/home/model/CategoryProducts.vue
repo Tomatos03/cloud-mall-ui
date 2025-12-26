@@ -1,8 +1,5 @@
 <template>
-    <div
-        class="category-products bg-white rounded-2xl shadow p-6 mb-6"
-        v-if="goodsList && goodsList.length > 0"
-    >
+    <div class="category-products bg-white rounded-2xl shadow p-6 mb-6">
         <!-- 顶部标题栏 -->
         <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
             <h2 class="text-2xl font-bold text-gray-800">{{ categoryTitle }}</h2>
@@ -27,32 +24,52 @@
         </div>
 
         <!-- 商品网格 -->
-        <div class="products-grid">
-            <!-- 左侧主推商品，直接用 products[0] -->
+        <div class="products-grid" v-if="goodsList && goodsList.length > 0">
+            <!-- 左侧主推商品 - 采用简约高级感设计 -->
             <div
                 v-if="goodsList[0]"
-                class="featured-product bg-linear-to-br from-purple-100 to-blue-100 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-shadow"
+                class="featured-product group relative overflow-hidden bg-indigo-50/50 rounded-2xl p-6 cursor-pointer hover:shadow-xl transition-all duration-500 border border-indigo-100"
                 @click="onGoodsClick(goodsList[0].id, goodsList[0].storeId)"
             >
-                <div class="flex flex-col h-full">
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">
-                        {{ goodsList[0].name }}
-                    </h3>
-                    <p class="text-sm text-gray-600 mb-4">{{ goodsList[0].info }}</p>
-                    <div class="flex-1 flex items-center justify-center mb-4">
+                <!-- 背景装饰数字 -->
+                <div class="absolute right-0 top-0 p-4">
+                    <div class="text-indigo-100/50 font-serif italic text-6xl select-none leading-none group-hover:text-indigo-200/50 transition-colors duration-500">01</div>
+                </div>
+                
+                <div class="relative flex flex-col h-full z-10">
+                    <div class="max-w-[85%]">
+                        <span class="inline-block text-indigo-600 text-xs font-bold tracking-[0.2em] uppercase mb-2">
+                            Featured Selection
+                        </span>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2 line-clamp-1 leading-tight group-hover:text-indigo-700 transition-colors">
+                            {{ goodsList[0].name }}
+                        </h3>
+                        <p class="text-sm text-slate-500 line-clamp-1 leading-relaxed">
+                            {{ goodsList[0].info }}
+                        </p>
+                    </div>
+
+                    <div class="flex-1 flex items-center justify-center my-4">
                         <img
-                            :src="goodsList[0].image"
+                            :src="getImageURL(goodsList[0].img)"
                             :alt="goodsList[0].name"
-                            class="max-w-full max-h-64 object-contain"
+                            class="max-w-full max-h-64 object-contain transform group-hover:scale-105 transition-transform duration-700"
                         />
                     </div>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-orange-500 text-2xl font-bold">
-                            {{ goodsList[0].price }}元
-                        </span>
-                        <span v-if="goodsList[0].originalPrice" class="text-gray-400 line-through">
-                            {{ goodsList[0].originalPrice }}元
-                        </span>
+
+                    <div class="mt-auto flex items-center justify-between">
+                        <div class="flex items-baseline gap-3">
+                            <span class="text-gray-900 text-3xl font-light">
+                                <span class="text-lg mr-1">¥</span>{{ fenToYuan(goodsList[0].price) }}
+                            </span>
+                            <span v-if="goodsList[0].originalPrice" class="text-gray-400 line-through text-xs font-light">
+                                ¥{{ fenToYuan(goodsList[0].originalPrice) }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <span class="text-sm font-medium">查看详情</span>
+                            <el-icon><arrow-right /></el-icon>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -66,11 +83,11 @@
                     @click="onGoodsClick(goods.id, goods.storeId)"
                 >
                     <div class="flex flex-col h-full">
-                        <div class="flex-1 flex items-center justify-center mb-3">
+                        <div class="flex-1 flex items-center justify-center mb-2">
                             <img
-                                :src="goods.image"
+                                :src="getImageURL(goods.img)"
                                 :alt="goods.name"
-                                class="max-w-full max-h-40 object-contain"
+                                class="max-w-full max-h-32 object-contain"
                             />
                         </div>
                         <h4 class="text-sm font-medium text-gray-800 mb-2 line-clamp-2">
@@ -81,13 +98,13 @@
                         </p>
                         <div class="flex items-baseline gap-2">
                             <span class="text-orange-500 text-lg font-bold">
-                                {{ goods.price }}元
+                                ¥{{ fenToYuan(goods.price) }}
                             </span>
                             <span
                                 v-if="goods.originalPrice"
                                 class="text-xs text-gray-400 line-through"
                             >
-                                {{ goods.originalPrice }}元
+                                ¥{{ fenToYuan(goods.originalPrice) }}
                             </span>
                         </div>
                     </div>
@@ -110,18 +127,31 @@
                 </div>
             </div>
         </div>
+
+        <!-- 空状态页面 -->
+        <div v-else class="empty-state flex flex-col items-center justify-center py-16">
+            <div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
+                <el-icon :size="48" class="text-gray-400">
+                    <picture />
+                </el-icon>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">暂无商品</h3>
+            <p class="text-gray-400 text-sm mb-6">当前分类下还没有商品</p>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { ArrowRight } from '@element-plus/icons-vue'
+    import { ArrowRight, Picture } from '@element-plus/icons-vue'
     import { computed } from 'vue'
+    import { getImageURL } from '@/utils/image'
+    import { fenToYuan } from '@/utils/price'
 
     interface GoodsCard {
         id: string
         name: string
         info: string
-        image: string
+        img: string
         price: string
         storeId: string
         originalPrice?: string
@@ -173,12 +203,16 @@
         gap: 16px;
     }
 
+    .featured-product {
+        min-height: 420px;
+    }
+
     .product-card {
-        min-height: 280px;
+        min-height: 200px;
     }
 
     .view-more {
-        min-height: 280px;
+        min-height: 200px;
     }
 
     .line-clamp-1 {

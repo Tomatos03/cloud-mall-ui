@@ -3,13 +3,12 @@
         <!-- 标签页导航 -->
         <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="custom-tabs">
             <el-tab-pane label="所有订单" name="all" />
-            <el-tab-pane label="待支付" name="PENDING_PAYMENT" />
-            <el-tab-pane label="待发货" name="PENDING_SHIPMENT" />
+            <el-tab-pane label="待支付" name="CREATED" />
+            <el-tab-pane label="待发货" name="PAID" />
             <el-tab-pane label="待收货" name="SHIPPED" />
-            <el-tab-pane label="已完成" name="COMPLETED" />
-            <el-tab-pane label="已评价" name="RATED" />
-            <el-tab-pane label="已退款" name="REFUNDED" />
-            <el-tab-pane label="已取消" name="CANCELLED" />
+            <el-tab-pane label="已完成" name="FINISHED" />
+            <el-tab-pane label="已取消" name="CANCELED" />
+            <el-tab-pane label="已关闭" name="CLOSED" />
         </el-tabs>
 
         <!-- 订单列表 -->
@@ -22,31 +21,29 @@
                 >
                     <!-- 订单头部信息 -->
                     <div class="bg-gray-50/50 px-6 py-4 border-b border-gray-50">
-                        <div class="mb-2">
+                        <div class="mb-2 flex items-center gap-3">
                             <span class="text-gray-400 text-sm">
                                 {{ getOrderTypeText(order) }}
                             </span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-6 text-sm">
-                                <span class="text-gray-500">
-                                    下单时间：<span class="text-gray-900 font-medium">{{
-                                        order.createTime
-                                    }}</span>
-                                </span>
-                                <span class="text-gray-500">
-                                    订单号：<span class="text-gray-900 font-medium">{{
-                                        order.orderNo
-                                    }}</span>
-                                </span>
-                            </div>
-                            <el-tag
-                                :type="getOrderStatusTagType(order.status)"
-                                effect="plain"
-                                class="rounded-full! px-4! font-bold!"
+                            <!-- 聚合订单过滤提示 -->
+                            <span
+                                v-if="isParentOrder(order.orderNo) && activeTab !== 'all'"
+                                class="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded-full"
                             >
-                                {{ getOrderStatusText(order.status) }}
-                            </el-tag>
+                                当前仅展示{{ getFilterTipText() }}商品
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-6 text-sm">
+                            <span class="text-gray-500">
+                                下单时间：<span class="text-gray-900 font-medium">{{
+                                    order.createTime
+                                }}</span>
+                            </span>
+                            <span class="text-gray-500">
+                                订单号：<span class="text-gray-900 font-medium">{{
+                                    order.orderNo
+                                }}</span>
+                            </span>
                         </div>
                     </div>
 
@@ -91,7 +88,7 @@
                                     @click="$router.push(`/goods/${item.goodsId}`)"
                                 >
                                     <img
-                                        :src="item.goodsImg"
+                                        :src="getImageURL(item.goodsImg)"
                                         :alt="item.goodsName"
                                         class="w-full h-full object-cover"
                                     />
@@ -164,6 +161,15 @@
 
                                 <div class="flex gap-2">
                                     <el-button
+                                        v-if="shopOrder.status === OrderStatus.SHIPPED"
+                                        type="success"
+                                        size="small"
+                                        class="rounded-xl! font-bold"
+                                        @click="handleReceive(shopOrder.orderNo)"
+                                    >
+                                        确认收货
+                                    </el-button>
+                                    <el-button
                                         v-if="canComment(shopOrder)"
                                         type="warning"
                                         size="small"
@@ -187,7 +193,7 @@
                         </div>
                         <!-- 待支付订单显示支付按钮 -->
                         <el-button
-                            v-if="order.status === OrderStatus.PENDING_PAYMENT"
+                            v-if="order.status === OrderStatus.CREATED"
                             type="primary"
                             class="bg-orange-600! border-orange-600! hover:bg-orange-700! rounded-xl! font-bold px-8!"
                             @click="handlePayment(order)"
@@ -281,19 +287,18 @@
 
 <script setup lang="ts">
     import { ref, onMounted, computed } from 'vue'
-    import { ElMessage } from 'element-plus'
+    import { ElMessage, ElMessageBox } from 'element-plus'
     import { Document, Shop, ChatDotRound } from '@element-plus/icons-vue'
     import PaymentModal from '@/views/goods/model/PaymentModal.vue'
     import {
         OrderStatus,
-        OrderType,
         type OrderAggregateVO,
         type ShopOrderVO,
         pageQueryOrders,
         commentOrder,
+        receiveOrder,
         getOrderStatusText,
         getOrderStatusTagType,
-        getOrderType,
         calculateOrderTotalPrice,
         calculateShopOrderTotal,
         calculateShopOrderItemCount,
@@ -301,6 +306,7 @@
         canComment,
         isCommented,
     } from '@/api/order'
+    import { getImageURL } from '@/utils/image'
 
     const activeTab = ref('all')
     const orderList = ref<OrderAggregateVO[]>([])
@@ -327,10 +333,28 @@
 
     /**
      * 获取订单类型文本
+     * 通过订单号判断（P开头为聚合订单），而不是子订单数量
      */
     const getOrderTypeText = (order: OrderAggregateVO): string => {
-        const orderType = getOrderType(order)
-        return orderType === OrderType.PARENT ? '多店铺订单' : '单店铺订单'
+        return isParentOrder(order.orderNo) ? '多店铺订单' : '单店铺订单'
+    }
+
+    /**
+     * 判断是否是聚合订单（订单号以P开头）
+     * 注意：不能通过子订单数量判断，因为筛选后可能只剩一个子订单
+     */
+    const isParentOrder = (orderNo: string): boolean => {
+        return orderNo.startsWith('P')
+    }
+
+    /**
+     * 获取过滤提示文本
+     */
+    const getFilterTipText = (): string => {
+        if (activeTab.value === 'all') {
+            return ''
+        }
+        return getOrderStatusText(activeTab.value as OrderStatus)
     }
 
     /**
@@ -339,23 +363,13 @@
     const loadOrderList = async () => {
         loading.value = true
         try {
-            // 构建查询参数
-            const params: any = {
+            const res = await pageQueryOrders({
                 pageNum: pageNum.value,
                 pageSize: pageSize.value,
-            }
-
-            // 只有选择具体状态时才添加 status 参数
-            if (activeTab.value !== 'all') {
-                params.status = activeTab.value
-            }
-
-            const res = await pageQueryOrders(params)
-
-            if (res && res.data) {
-                orderList.value = res.data.records || []
-                total.value = res.data.total || 0
-            }
+                ...(activeTab.value !== 'all' && { status: activeTab.value }),
+            })
+            orderList.value = res.data.records || []
+            total.value = res.data.total || 0
         } finally {
             loading.value = false
         }
@@ -394,17 +408,16 @@
 
         commentLoading.value = true
         try {
-            const res = await commentOrder(
+            await commentOrder(
                 currentShopOrder.value.orderId,
                 commentForm.value.rate,
                 commentForm.value.comment
             )
-
-            if (res && res.data) {
-                ElMessage.success('评价成功')
-                commentDialogVisible.value = false
-                await loadOrderList()
-            }
+            ElMessage.success('评价成功')
+            commentDialogVisible.value = false
+            await loadOrderList()
+        } catch {
+            // http 工具类已处理错误提示
         } finally {
             commentLoading.value = false
         }
@@ -430,13 +443,29 @@
      * 支付成功回调
      */
     const handlePaymentSuccess = async (orderNo: string) => {
-        ElMessage.success('支付成功！订单状态将自动更新')
-
         // 延迟关闭弹窗并刷新订单列表
         setTimeout(() => {
             paymentModalVisible.value = false
             loadOrderList()
-        }, 1500)
+        }, 1000)
+    }
+
+    /**
+     * 处理收货
+     */
+    const handleReceive = async (orderNo: string) => {
+        try {
+            await ElMessageBox.confirm('确认已收到货物吗？', '确认收货', {
+                confirmButtonText: '确认',
+                cancelButtonText: '取消',
+                type: 'warning',
+            })
+            await receiveOrder(orderNo)
+            ElMessage.success('收货成功')
+            await loadOrderList()
+        } catch {
+            // 用户点击取消或请求失败（http工具类已处理错误提示）
+        }
     }
 
     onMounted(() => {

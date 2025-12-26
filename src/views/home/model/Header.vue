@@ -62,7 +62,7 @@
                 <el-dropdown @command="handleCommand" trigger="click" placement="bottom-end">
                     <div class="flex items-center gap-2 p-1 pr-3 hover:bg-gray-50 rounded-full cursor-pointer transition-all border border-transparent hover:border-gray-100">
                         <div class="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 overflow-hidden border border-orange-200">
-                            <img v-if="userStore.avatar" :src="userStore.avatar" class="w-full h-full object-cover" />
+                            <img v-if="userStore.avatarUrl" :src="getImageURL(userStore.avatarUrl)" class="w-full h-full object-cover" />
                             <el-icon v-else :size="20"><User /></el-icon>
                         </div>
                         <span class="text-sm font-medium text-gray-700 hidden sm:inline">{{ userStore.nickname || '未登录' }}</span>
@@ -92,6 +92,7 @@
     import { useRouter } from 'vue-router'
     import { ElMessageBox, ElMessage } from 'element-plus'
     import { useUserStore } from '@/stores/user'
+    import { getImageURL } from '@/utils/image'
 
     const router = useRouter()
     const searchKeyword = ref('')
@@ -127,8 +128,8 @@
             } catch {
                 // 取消退出
             }
-        } else if (command === 'orders' ) {
-          router.push({ name: 'Orders' })
+        } else if (command === 'orders') {
+            router.push({ name: 'profile', query: { tab: 'orders' } }).catch(() => {})
         }
     }
 </script>

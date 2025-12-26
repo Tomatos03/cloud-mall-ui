@@ -7,7 +7,7 @@ export interface StoreItem {
     id: string
     name: string
     description: string
-    avatar: string
+    avatarUrl: string
     rating: number
     followerCount: number
     productCount: number
@@ -36,7 +36,7 @@ export function fetchStoreInfo(storeId: string) {
 /**
  * 获取店铺商品列表
  */
-export function fetchStoreProducts(storeId: string, params?: Record<string, any>) {
+export function fetchStoreProducts(storeId: string, params?: Record<string, unknown>) {
     return http.get<StoreProductItem[]>(`/store/products/${storeId}`, params)
 }
 

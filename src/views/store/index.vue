@@ -13,20 +13,20 @@
                     v-if="loading"
                     class="flex flex-col items-center justify-center py-32 bg-white rounded-2xl shadow-sm border border-gray-100"
                 >
-                    <el-icon class="text-4xl text-orange-500 animate-spin">
+                    <el-icon class="text-4xl text-orange-600 animate-spin">
                         <Loading />
                     </el-icon>
-                    <p class="mt-4 text-gray-400 font-medium">正在为您加载店铺信息...</p>
+                    <p class="mt-4 text-gray-600 font-medium">正在为您加载店铺信息...</p>
                 </div>
 
                 <template v-else-if="storeInfo">
                     <!-- 店铺头部卡片 -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <!-- 店铺横幅 (如果有) -->
-                        <div class="h-48 bg-gradient-to-r from-orange-100 to-orange-50 relative">
-                            <img 
-                                v-if="storeInfo.banner" 
-                                :src="storeInfo.banner" 
+                        <div class="h-48 bg-linear-to-r from-orange-100 to-orange-50 relative">
+                            <img
+                                v-if="storeInfo.banner"
+                                :src="getImageURL(storeInfo.banner)"
                                 class="w-full h-full object-cover"
                                 alt="店铺横幅"
                             />
@@ -40,7 +40,7 @@
                             <div class="flex flex-col md:flex-row items-end md:items-center gap-6">
                                 <div class="relative">
                                     <img
-                                        :src="storeInfo.avatar"
+                                        :src="getImageURL(storeInfo.avatarUrl)"
                                         :alt="storeInfo.name"
                                         class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg object-cover bg-white"
                                     />
@@ -48,44 +48,44 @@
                                         <el-icon :size="16"><Check /></el-icon>
                                     </div>
                                 </div>
-                                
+
                                 <div class="flex-1 pt-14 md:pt-0">
                                     <div class="flex items-center gap-3 mb-2">
-                                        <h1 class="text-2xl font-bold text-gray-900">{{ storeInfo.name }}</h1>
-                                        <el-tag size="small" type="warning" effect="plain" class="border-orange-200! text-orange-500! bg-orange-50!">官方认证</el-tag>
+                                        <h1 class="text-3xl font-bold text-gray-900">{{ storeInfo.name }}</h1>
+                                        <el-tag size="small" type="warning" effect="plain" class="border-orange-400! text-orange-700! bg-orange-50!">官方认证</el-tag>
                                     </div>
-                                    <p class="text-gray-500 text-sm mb-4 max-w-2xl">{{ storeInfo.description }}</p>
-                                    
+                                    <p class="text-gray-600 text-sm mb-4 max-w-2xl">{{ storeInfo.description }}</p>
+
                                     <div class="flex flex-wrap items-center gap-6">
                                         <div class="flex flex-col">
-                                            <span class="text-xs text-gray-400 uppercase tracking-wider">综合评分</span>
+                                            <span class="text-xs text-gray-500 uppercase tracking-wider">综合评分</span>
                                             <div class="flex items-center gap-1">
-                                                <span class="text-lg font-bold text-orange-500">{{ storeInfo.rating }}</span>
+                                                <span class="text-lg font-bold text-gray-900">{{ storeInfo.rating }}</span>
                                                 <el-rate v-model="storeInfo.rating" disabled size="small" />
                                             </div>
                                         </div>
-                                        <div class="w-px h-8 bg-gray-100 hidden sm:block"></div>
+                                        <div class="w-px h-8 bg-gray-200 hidden sm:block"></div>
                                         <div class="flex flex-col">
-                                            <span class="text-xs text-gray-400 uppercase tracking-wider">粉丝数</span>
-                                            <span class="text-lg font-bold text-gray-800">{{ formatNumber(storeInfo.followerCount) }}</span>
+                                            <span class="text-xs text-gray-500 uppercase tracking-wider">粉丝数</span>
+                                            <span class="text-lg font-bold text-gray-900">{{ formatNumber(storeInfo.followerCount) }}</span>
                                         </div>
-                                        <div class="w-px h-8 bg-gray-100 hidden sm:block"></div>
+                                        <div class="w-px h-8 bg-gray-200 hidden sm:block"></div>
                                         <div class="flex flex-col">
-                                            <span class="text-xs text-gray-400 uppercase tracking-wider">全部商品</span>
-                                            <span class="text-lg font-bold text-gray-800">{{ storeInfo.productCount }}</span>
+                                            <span class="text-xs text-gray-500 uppercase tracking-wider">全部商品</span>
+                                            <span class="text-lg font-bold text-gray-900">{{ storeInfo.productCount }}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="flex gap-3 pb-2">
-                                    <el-button 
-                                        type="primary" 
+                                    <el-button
+                                        type="primary"
                                         class="bg-orange-500! border-orange-500! hover:bg-orange-600! rounded-xl! px-8 h-11 font-bold"
                                         @click="handleFollow"
                                     >
                                         {{ isFollowed ? '已关注' : '关注店铺' }}
                                     </el-button>
-                                    <el-button 
+                                    <el-button
                                         class="rounded-xl! h-11 px-6 border-gray-200! hover:text-orange-500! hover:border-orange-200!"
                                         :icon="Share"
                                     >
@@ -103,8 +103,8 @@
                             <div class="flex items-center gap-4 w-full md:w-auto">
                                 <span class="font-bold text-gray-800 whitespace-nowrap">全部商品</span>
                                 <div class="flex gap-2">
-                                    <el-button 
-                                        v-for="sort in sortOptions" 
+                                    <el-button
+                                        v-for="sort in sortOptions"
                                         :key="sort.value"
                                         size="small"
                                         :type="currentSort === sort.value ? 'primary' : 'default'"
@@ -116,7 +116,7 @@
                                     </el-button>
                                 </div>
                             </div>
-                            
+
                             <div class="relative w-full md:w-80">
                                 <el-input
                                     v-model="searchQuery"
@@ -130,15 +130,15 @@
 
                         <!-- 商品网格 -->
                         <div v-if="filteredProducts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            <div 
-                                v-for="product in filteredProducts" 
+                            <div
+                                v-for="product in filteredProducts"
                                 :key="product.id"
                                 class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer"
                                 @click="viewProduct(product.id)"
                             >
                                 <div class="aspect-square overflow-hidden bg-gray-50 relative">
-                                    <img 
-                                        :src="product.img" 
+                                    <img
+                                        :src="getImageURL(product.img)"
                                         :alt="product.title"
                                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     />
@@ -147,33 +147,33 @@
                                     </div>
                                 </div>
                                 <div class="p-4">
-                                    <h3 class="text-gray-800 font-bold line-clamp-2 mb-2 group-hover:text-orange-500 transition-colors">
+                                    <h3 class="text-gray-900 font-bold line-clamp-2 mb-2 group-hover:text-orange-600 transition-colors">
                                         {{ product.title }}
                                     </h3>
-                                    <p class="text-gray-400 text-xs line-clamp-1 mb-3">{{ product.desc }}</p>
+                                    <p class="text-gray-500 text-xs line-clamp-1 mb-3">{{ product.desc }}</p>
                                     <div class="flex justify-between items-end">
                                         <div class="flex items-baseline gap-0.5">
-                                            <span class="text-orange-600 text-xs font-bold">¥</span>
-                                            <span class="text-orange-600 text-xl font-black">{{ product.price }}</span>
+                                            <span class="text-orange-700 text-xs font-bold">¥</span>
+                                            <span class="text-orange-700 text-xl font-black">{{ fenToYuan(product.price) }}</span>
                                         </div>
-                                        <span class="text-gray-400 text-[10px]">已售 {{ product.sale || 0 }}</span>
+                                        <span class="text-gray-500 text-[10px]">已售 {{ product.sale || 0 }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- 空状态 -->
-                        <div 
-                            v-else 
+                        <div
+                            v-else
                             class="flex flex-col items-center justify-center py-24 bg-white rounded-2xl border border-gray-100"
                         >
-                            <el-icon :size="64" class="text-gray-100 mb-4"><Search /></el-icon>
-                            <p class="text-gray-400">没有找到相关商品</p>
-                            <el-button 
-                                v-if="searchQuery" 
-                                type="primary" 
-                                link 
-                                class="mt-2 text-orange-500!"
+                            <el-icon :size="64" class="text-gray-200 mb-4"><Search /></el-icon>
+                            <p class="text-gray-500">没有找到相关商品</p>
+                            <el-button
+                                v-if="searchQuery"
+                                type="primary"
+                                link
+                                class="mt-2 text-orange-600!"
                                 @click="searchQuery = ''"
                             >
                                 清除搜索条件
@@ -188,12 +188,12 @@
                     class="flex flex-col items-center justify-center py-32 bg-white rounded-2xl shadow-sm border border-gray-100"
                 >
                     <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-4">
-                        <el-icon class="text-4xl text-gray-200"><Warning /></el-icon>
+                        <el-icon class="text-4xl text-gray-300"><Warning /></el-icon>
                     </div>
-                    <p class="text-gray-500 text-lg">抱歉，该店铺不存在或已关闭</p>
+                    <p class="text-gray-600 text-lg font-medium">抱歉，该店铺不存在或已关闭</p>
                     <el-button
                         type="primary"
-                        class="mt-6 bg-orange-500! border-orange-500! rounded-xl!"
+                        class="mt-6 bg-orange-600! border-orange-600! rounded-xl!"
                         @click="$router.push('/')"
                     >返回首页</el-button>
                 </div>
@@ -208,13 +208,13 @@
     import { ref, computed, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
-    import { 
-        Loading, 
-        Shop, 
-        Check, 
-        Share, 
-        Search, 
-        Warning 
+    import {
+        Loading,
+        Shop,
+        Check,
+        Share,
+        Search,
+        Warning
     } from '@element-plus/icons-vue'
     import Header from '@/views/home/model/Header.vue'
     import Footer from '@/views/home/model/Footer.vue'
@@ -225,6 +225,8 @@
         type StoreItem,
         type StoreProductItem,
     } from '@/api/store'
+    import { getImageURL } from '@/utils/image'
+    import { fenToYuan } from '@/utils/price'
 
     const route = useRoute()
     const router = useRouter()
@@ -246,19 +248,23 @@
 
     const filteredProducts = computed(() => {
         let result = [...products.value]
-        
+
         // 搜索过滤
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase()
             result = result.filter((product) =>
-                product.title.toLowerCase().includes(query) || 
+                product.title.toLowerCase().includes(query) ||
                 product.desc.toLowerCase().includes(query)
             )
         }
 
         // 排序逻辑 (示例)
         if (currentSort.value === 'price') {
-            result.sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+            result.sort((a, b) => {
+                const priceA = typeof a.price === 'string' ? parseFloat(a.price) : a.price
+                const priceB = typeof b.price === 'string' ? parseFloat(b.price) : b.price
+                return (priceA || 0) - (priceB || 0)
+            })
         } else if (currentSort.value === 'sales') {
             result.sort((a, b) => (b.sale || 0) - (a.sale || 0))
         }
@@ -278,7 +284,7 @@
                 fetchStoreInfo(storeId),
                 fetchStoreProducts(storeId)
             ])
-            
+
             storeInfo.value = infoRes.data
             products.value = productsRes.data || []
         } catch (error) {
@@ -294,12 +300,12 @@
             await toggleFollowStore(storeId)
             isFollowed.value = !isFollowed.value
             ElMessage.success(isFollowed.value ? '关注成功' : '已取消关注')
-            
+
             // 更新粉丝数 (本地模拟)
             if (storeInfo.value) {
                 storeInfo.value.followerCount += isFollowed.value ? 1 : -1
             }
-        } catch (error) {
+        } catch {
             ElMessage.error('操作失败，请稍后再试')
         }
     }
@@ -308,7 +314,8 @@
         router.push({ name: 'GoodsDetail', params: { goodsId: productId } })
     }
 
-    const formatNumber = (num: number) => {
+    const formatNumber = (num?: number) => {
+        if (!num) return '0'
         if (num >= 10000) {
             return (num / 10000).toFixed(1) + 'w'
         }

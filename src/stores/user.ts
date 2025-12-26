@@ -6,7 +6,7 @@ export interface UserState {
     id: string // 用户ID
     nickname: string // 用户昵称
     token: string // 登录令牌
-    avatar?: string // 用户头像（可选）
+    avatarUrl?: string // 用户头像URL（可选）
 }
 
 /**
@@ -19,7 +19,7 @@ export const useUserStore = defineStore('user', {
         id: '',
         nickname: '',
         token: '',
-        avatar: '',
+        avatarUrl: '',
     }),
     actions: {
         /**
@@ -34,10 +34,7 @@ export const useUserStore = defineStore('user', {
          * 清空用户信息（如退出登录时调用）
          */
         clearUser() {
-            this.id = ''
-            this.nickname = ''
-            this.token = ''
-            this.avatar = ''
+            this.$reset()
         },
 
         /**

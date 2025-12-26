@@ -130,7 +130,7 @@
                                         class="relative aspect-square mb-4 overflow-hidden rounded-xl bg-gray-50 flex items-center justify-center"
                                     >
                                         <img
-                                            :src="product.image"
+                                            :src="getImageURL(product.image)"
                                             :alt="product.name"
                                             class="max-w-[85%] max-h-[85%] object-contain transition-transform duration-500 group-hover:scale-110"
                                         />
@@ -227,6 +227,7 @@
 
     import { searchGoods, type GoodsItem } from '@/api/goods'
     import { fetchCategories, type Category } from '@/api/category'
+    import { getImageURL } from '@/utils/image'
 
     const route = useRoute()
     const router = useRouter()

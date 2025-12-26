@@ -11,7 +11,7 @@
                     class="w-full h-full cursor-pointer"
                     @click="handleBannerClick(banner)"
                 >
-                    <el-image class="w-full h-full" :src="banner.imageUrl" fit="cover" />
+                    <el-image class="w-full h-full" :src="getImageURL(banner.imageUrl)" fit="cover" />
                 </div>
             </el-carousel-item>
         </el-carousel>
@@ -21,7 +21,7 @@
 <script setup lang="ts">
     import type { BannerItem } from '@/api/home'
     import { toRefs } from 'vue'
-    import { useRouter } from 'vue-router'
+    import { getImageURL } from '@/utils/image'
 
     interface Props {
         banners: BannerItem[]
@@ -37,15 +37,10 @@
     })
 
     const { height, banners, interval, arrow, motionBlur } = toRefs(props)
-    const router = useRouter()
+    const emit = defineEmits(['banner-click'])
 
     const handleBannerClick = (banner: BannerItem) => {
-        if (banner.goodsId) {
-            router.push({
-                name: 'GoodsDetail',
-                params: { id: banner.goodsId },
-            }).catch(() => {})
-        }
+        emit('banner-click', banner)
     }
 </script>
 

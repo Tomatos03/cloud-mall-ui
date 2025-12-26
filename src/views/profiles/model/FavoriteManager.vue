@@ -25,7 +25,7 @@
                     <!-- 商品图片 -->
                     <div class="relative aspect-square overflow-hidden cursor-pointer" @click="goToProduct(item.goodsId)">
                         <el-image
-                            :src="item.goodsImg"
+                            :src="getImageURL(item.goodsImg)"
                             fit="cover"
                             class="w-full h-full group-hover:scale-110 transition-transform duration-500"
                         >
@@ -58,7 +58,7 @@
                         </h3>
                         <div class="flex items-center justify-between">
                             <div class="text-lg font-black text-orange-600">
-                                <span class="text-xs">¥</span>{{ item.goodsPrice }}
+                                <span class="text-xs">¥</span>{{ fenToYuan(item.goodsPrice) }}
                             </div>
                             <el-button
                                 type="primary"
@@ -100,6 +100,8 @@
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { Star, Delete, Loading, Picture } from '@element-plus/icons-vue'
     import { fetchFavorites, removeFavorite, type FavoriteItem } from '@/api/favorite'
+    import { getImageURL } from '@/utils/image'
+    import { fenToYuan } from '@/utils/price'
 
     const router = useRouter()
     const favorites = ref<FavoriteItem[]>([])
