@@ -18,12 +18,12 @@
                     <div class="flex-1 flex items-center justify-center mb-3">
                         <img
                             :src="getImageURL(item.img) || getImageURL('/default-product.png')"
-                            :alt="item.title"
+                            :alt="item.name"
                             class="max-w-full max-h-40 object-contain rounded"
                         />
                     </div>
                     <h4 class="text-sm font-medium text-gray-800 mb-2 line-clamp-2">
-                        {{ item.title }}
+                        {{ item.name }}
                     </h4>
                     <div class="flex items-baseline gap-2 mt-auto">
                         <span class="text-orange-500 text-lg font-bold">
@@ -50,8 +50,8 @@
     const router = useRouter()
     const itemsComputed = computed(() => props.items || [])
 
-    const goToProduct = (productId: number) => {
-        router.push(`/product/${productId}`)
+    const goToProduct = (productId: string) => {
+        router.push(`/goods/${productId}`)
     }
 </script>
 

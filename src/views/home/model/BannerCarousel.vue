@@ -19,12 +19,12 @@
 </template>
 
 <script setup lang="ts">
-    import type { BannerItem } from '@/api/home'
+    import type { Banner } from '@/api/home'
     import { toRefs } from 'vue'
     import { getImageURL } from '@/utils/image'
 
     interface Props {
-        banners: BannerItem[]
+        banners: Banner[]
         interval: number
         // 支持 Element Plus 的 arrow 字符串值，也允许布尔值兼容历史用法
         arrow?: 'always' | 'hover' | 'never' | boolean
@@ -39,7 +39,7 @@
     const { height, banners, interval, arrow, motionBlur } = toRefs(props)
     const emit = defineEmits(['banner-click'])
 
-    const handleBannerClick = (banner: BannerItem) => {
+    const handleBannerClick = (banner: Banner) => {
         emit('banner-click', banner)
     }
 </script>

@@ -1,6 +1,6 @@
 <template>
-    <div class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-        <div class="max-w-350 mx-auto flex items-center justify-between h-20 px-6 lg:px-10">
+    <div class="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-[1400px] mx-auto flex items-center justify-between h-16 px-6 lg:px-8">
             <!-- Logo 和文本 -->
             <div
                 class="flex items-center space-x-3 cursor-pointer group transition-all"
@@ -10,37 +10,39 @@
                 @click="handleLogoClick"
                 @keyup.enter="handleLogoClick"
             >
-                <div class="shrink-0 relative">
-                    <div class="absolute -inset-1 bg-orange-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
-                    <img class="relative h-10 w-10 rounded-xl shadow-sm" src="/favicon.ico" alt="Logo" />
+                <div class="shrink-0">
+                    <div class="h-9 w-9 rounded-lg bg-orange-500 flex items-center justify-center text-white transition-transform group-hover:scale-105">
+                        <el-icon :size="20"><Shop /></el-icon>
+                    </div>
                 </div>
                 <div class="flex flex-col">
-                    <h1 class="text-xl font-black bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                    <h1 class="text-lg font-bold text-gray-900 tracking-tight">
                         在线商城
                     </h1>
-                    <span class="text-[10px] uppercase tracking-widest text-orange-500 font-bold">Online Shop</span>
+                    <span class="text-[9px] uppercase tracking-[0.2em] text-gray-400 font-medium">Online Shop</span>
                 </div>
             </div>
 
             <!-- 搜索框 -->
-            <div class="flex-1 max-w-2xl mx-12">
-                <div class="relative flex items-center group">
+            <div class="flex-1 max-w-xl mx-10">
+                <div class="relative flex items-center">
                     <el-input
                         v-model="searchKeyword"
-                        placeholder="搜索你心仪的商品..."
+                        placeholder="搜索商品..."
                         class="search-input"
+
                         clearable
                         @keyup.enter="handleSearch"
                     >
                         <template #prefix>
-                            <el-icon class="text-gray-400 group-focus-within:text-orange-500 transition-colors">
+                            <el-icon class="text-gray-400">
                                 <Search />
                             </el-icon>
                         </template>
                     </el-input>
                     <button
                         @click="handleSearch"
-                        class="absolute right-1.5 px-6 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-full transition-all shadow-lg shadow-orange-200 active:scale-95"
+                        class="absolute right-1 px-5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-full transition-colors active:scale-95"
                     >
                         搜索
                     </button>
@@ -48,24 +50,24 @@
             </div>
 
             <!-- 右侧操作区 -->
-            <div class="flex items-center space-x-5">
+            <div class="flex items-center space-x-4">
                 <!-- 购物车 -->
                 <div
-                    class="relative p-2.5 text-gray-600 hover:text-orange-500 hover:bg-orange-50 cursor-pointer rounded-full transition-all group"
+                    class="relative p-2 text-gray-500 hover:text-orange-500 hover:bg-gray-50 cursor-pointer rounded-lg transition-all"
                     @click="goToCart"
                 >
-                    <el-icon :size="24"><ShoppingCart /></el-icon>
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
+                    <el-icon :size="22"><ShoppingCart /></el-icon>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
                 </div>
 
                 <!-- 用户中心 -->
                 <el-dropdown @command="handleCommand" trigger="click" placement="bottom-end">
-                    <div class="flex items-center gap-2 p-1 pr-3 hover:bg-gray-50 rounded-full cursor-pointer transition-all border border-transparent hover:border-gray-100">
-                        <div class="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 overflow-hidden border border-orange-200">
+                    <div class="flex items-center gap-2 p-1 pl-1 pr-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-all border border-transparent">
+                        <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 overflow-hidden border border-gray-200">
                             <img v-if="userStore.avatarUrl" :src="getImageURL(userStore.avatarUrl)" class="w-full h-full object-cover" />
-                            <el-icon v-else :size="20"><User /></el-icon>
+                            <el-icon v-else :size="18"><User /></el-icon>
                         </div>
-                        <span class="text-sm font-medium text-gray-700 hidden sm:inline">{{ userStore.nickname || '未登录' }}</span>
+                        <span class="text-sm font-medium text-gray-600 hidden sm:inline">{{ userStore.nickname || '未登录' }}</span>
                     </div>
                     <template #dropdown>
                         <el-dropdown-menu class="header-dropdown">
@@ -88,7 +90,7 @@
 
 <script setup lang="ts">
     import { ref } from 'vue'
-    import { Search, ShoppingCart, User, List, SwitchButton } from '@element-plus/icons-vue'
+    import { Search, ShoppingCart, User, List, SwitchButton, Shop } from '@element-plus/icons-vue'
     import { useRouter } from 'vue-router'
     import { ElMessageBox, ElMessage } from 'element-plus'
     import { useUserStore } from '@/stores/user'
@@ -107,9 +109,7 @@
     }
 
     const handleSearch = () => {
-        if (searchKeyword.value.trim()) {
-            router.push({ name: 'Search', query: { keyword: searchKeyword.value } })
-        }
+        router.push({ name: 'Search', query: { keyword: searchKeyword.value || '' } })
     }
 
     const handleCommand = async (command: string) => {
@@ -135,35 +135,35 @@
 </script>
 
 <style scoped>
-    /* 搜索框深度定制 */
+    /* 搜索框极简定制 */
     :deep(.search-input .el-input__wrapper) {
         border-radius: 9999px;
-        padding-left: 20px;
-        padding-right: 80px;
-        height: 44px;
-        box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.05) !important;
-        border: 2px solid transparent;
-        transition: all 0.3s;
+        padding-left: 16px;
+        padding-right: 70px;
+        height: 38px;
+        box-shadow: none !important;
+        border: 1px solid #f3f4f6;
+        transition: all 0.2s;
         background-color: #f9fafb;
     }
 
     :deep(.search-input .el-input__wrapper.is-focus) {
         background-color: #fff;
-        border-color: #f97316; /* orange-500 */
-        box-shadow: 0 4px 20px -5px rgba(249, 115, 22, 0.2) !important;
+        border-color: #e5e7eb;
+        box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05) !important;
     }
 
     /* 下拉菜单样式 */
     .header-dropdown :deep(.el-dropdown-menu__item) {
-        padding: 10px 20px;
-        font-size: 14px;
+        padding: 8px 16px;
+        font-size: 13px;
         display: flex;
         align-items: center;
         gap: 8px;
     }
 
     .header-dropdown :deep(.el-dropdown-menu__item:hover) {
-        background-color: #fff7ed;
+        background-color: #f9fafb;
         color: #f97316;
     }
 </style>

@@ -28,7 +28,14 @@ const service: AxiosInstance = axios.create({
  * 处理 401 未授权错误
  */
 const handleUnauthorized = () => {
+    // 清理 localStorage 中的 token
     localStorage.removeItem('token')
+
+    // 清理 Pinia 用户 store 中的信息
+    const userStore = useUserStore()
+    userStore.clearUser()
+
+    // 重定向到登录页
     window.location.href = '/auth/login'
 }
 

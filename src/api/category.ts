@@ -7,6 +7,8 @@ export interface Category {
     level: number
 }
 
+export type CategoryTab = Omit<Category, 'level'>
+
 // 获取分类列表
 export function fetchCategories() {
     return http.get<Category[]>('/category/list')

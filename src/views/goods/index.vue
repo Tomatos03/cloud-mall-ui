@@ -1,72 +1,41 @@
 <template>
-    <div class="flex flex-col h-screen overflow-hidden bg-slate-50">
+    <div class="flex flex-col h-screen overflow-hidden bg-gray-50/50">
         <!-- 顶部导航栏 -->
-        <el-header class="sticky top-0 z-30 shrink-0" style="padding-bottom: 10px">
+        <el-header class="sticky top-0 z-30 shrink-0 !h-auto !p-0 border-b border-gray-100 bg-white/80 backdrop-blur-md">
             <Header />
         </el-header>
 
         <!-- 商品详情主体 -->
-        <el-main class="flex-1 overflow-y-auto overflow-x-hidden">
-            <div class="max-w-7xl mx-auto p-6">
+        <el-main class="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
+            <div class="max-w-7xl mx-auto p-4 lg:p-8">
                 <!-- 加载中状态 -->
                 <div
                     v-if="loading"
-                    class="flex flex-col items-center justify-center py-32 bg-white rounded-2xl shadow-sm border border-gray-100"
+                    class="flex flex-col items-center justify-center py-40 bg-white rounded-3xl shadow-sm border border-gray-100"
                 >
-                    <el-icon class="text-4xl text-orange-600 animate-spin">
-                        <Loading />
-                    </el-icon>
-                    <p class="mt-4 text-gray-600 font-medium">正在为您加载商品详情...</p>
+                    <div class="relative">
+                        <div class="w-16 h-16 border-4 border-orange-100 border-t-orange-500 rounded-full animate-spin"></div>
+                        <el-icon class="absolute inset-0 m-auto text-2xl text-orange-500 animate-pulse">
+                            <Loading />
+                        </el-icon>
+                    </div>
+                    <p class="mt-6 text-gray-500 font-medium tracking-wide">正在为您加载商品详情...</p>
                 </div>
 
-                <div v-else-if="product" class="space-y-6">
+                <div v-else-if="product" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <!-- 商品核心信息卡片 -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                        <!-- 顶部商店信息 -->
-                        <div
-                            class="flex items-center justify-between mb-8 pb-6 border-b border-gray-50"
-                        >
-                            <div class="flex items-center gap-4">
-                                <div class="relative cursor-pointer" @click="goToStore">
-                                    <img
-                                        class="w-14 h-14 rounded-full border-2 border-orange-50 shadow-sm object-cover"
-                                        :src="getImageURL(product.storeAvatarUrl)"
-                                        alt="店铺头像"
-                                    />
-                                    <div
-                                        class="absolute -bottom-1 -right-1 bg-orange-500 text-white rounded-full p-0.5"
-                                    >
-                                        <el-icon :size="12"><Check /></el-icon>
-                                    </div>
-                                </div>
-                                <div class="cursor-pointer" @click="goToStore">
-                                    <h2 class="text-lg font-bold text-gray-800">
-                                        {{ product.storeName }}
-                                    </h2>
-                                    <div class="flex items-center gap-2">
-                                        <el-tag
-                                            size="small"
-                                            type="warning"
-                                            effect="plain"
-                                            class="border-orange-400! text-orange-700! bg-orange-50!"
-                                            >官方旗舰店</el-tag
-                                        >
-                                        <span class="text-xs text-gray-500">综合体验 9.8</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <el-button
-                                type="primary"
-                                plain
-                                class="border-orange-600! text-orange-600! hover:bg-orange-50! rounded-xl! px-6"
-                                @click="goToStore"
-                            >
-                                进入店铺
-                            </el-button>
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 lg:p-10">
+                        <!-- 店铺信息组件 -->
+                        <div class="mb-8 pb-8 border-b border-gray-50">
+                            <StoreInfoCard
+                                :store-id="product.storeId"
+                                :store-name="product.storeName"
+                                :store-avatar-url="product.storeAvatarUrl"
+                            />
                         </div>
 
                         <!-- 商品信息区域 -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
                             <!-- 左侧:图片展示区 -->
                             <div class="space-y-6">
                                 <!-- 主图 -->
@@ -127,66 +96,69 @@
 
                                     <!-- 价格 -->
                                     <div
-                                        class="bg-orange-50 p-6 rounded-2xl border border-orange-100"
+                                        class="bg-gradient-to-br from-orange-50 to-orange-100/30 p-6 rounded-2xl border border-orange-100 relative overflow-hidden"
                                     >
-                                        <div class="flex items-baseline gap-1">
-                                            <span class="text-orange-700 text-sm font-bold">¥</span>
+                                        <div class="absolute -right-4 -bottom-4 opacity-5">
+                                            <el-icon size="120" class="text-orange-600"><CircleCheck /></el-icon>
+                                        </div>
+                                        <div class="flex items-baseline gap-1 relative z-10">
+                                            <span class="text-orange-600 text-lg font-bold">¥</span>
                                             <span
-                                                class="text-orange-700 text-4xl font-black tracking-tight"
+                                                class="text-orange-600 text-5xl font-black tracking-tighter"
                                                 >{{ fenToYuan(product.price) }}</span
                                             >
-                                            <span class="text-gray-500 text-sm ml-2">起</span>
+                                            <span class="text-orange-400 text-sm ml-2 font-medium">起</span>
                                         </div>
                                         <div
-                                            class="mt-2 flex items-center gap-4 text-xs text-orange-700"
+                                            class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-orange-700/70 font-medium relative z-10"
                                         >
-                                            <span class="flex items-center gap-1"
-                                                ><el-icon><CircleCheck /></el-icon> 官方正品</span
+                                            <span class="flex items-center gap-1.5"
+                                                ><el-icon class="text-orange-500"><CircleCheck /></el-icon> 官方正品</span
                                             >
-                                            <span class="flex items-center gap-1"
-                                                ><el-icon><CircleCheck /></el-icon> 七天无理由</span
+                                            <span class="flex items-center gap-1.5"
+                                                ><el-icon class="text-orange-500"><CircleCheck /></el-icon> 七天无理由</span
                                             >
-                                            <span class="flex items-center gap-1"
-                                                ><el-icon><CircleCheck /></el-icon> 极速退款</span
+                                            <span class="flex items-center gap-1.5"
+                                                ><el-icon class="text-orange-500"><CircleCheck /></el-icon> 极速退款</span
                                             >
                                         </div>
                                     </div>
 
                                     <!-- 商品规格选择 (已简化为数量选择) -->
-                                    <div class="space-y-5">
+                                    <div class="space-y-6">
                                         <div class="flex items-center">
-                                            <span class="text-gray-700 w-20 font-medium"
+                                            <span class="text-gray-500 w-20 text-sm font-medium"
                                                 >配送至</span
                                             >
                                             <div
-                                                class="flex-1 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer hover:border-orange-300 transition-colors group"
+                                                class="flex-1 flex items-center justify-between px-4 py-3 bg-gray-50/80 rounded-xl border border-gray-100 cursor-pointer hover:border-orange-200 hover:bg-white hover:shadow-sm transition-all group"
                                                 @click="addressVisible = true"
                                             >
                                                 <div
                                                     class="flex items-center gap-2 overflow-hidden"
                                                 >
-                                                    <el-icon class="text-orange-600 shrink-0"
+                                                    <el-icon class="text-orange-500 shrink-0"
                                                         ><Location
                                                     /></el-icon>
                                                     <span
                                                         v-if="selectedAddress"
-                                                        class="text-gray-800 truncate"
+                                                        class="text-gray-700 text-sm truncate"
                                                     >
                                                         {{ selectedAddress.receiver }} -
                                                         {{ selectedAddress.detail }}
                                                     </span>
-                                                    <span v-else class="text-gray-500"
+                                                    <span v-else class="text-gray-400 text-sm"
                                                         >请选择收货地址</span
                                                     >
                                                 </div>
                                                 <el-icon
-                                                    class="text-gray-400 group-hover:text-orange-500 transition-colors"
+                                                    class="text-gray-300 group-hover:text-orange-500 transition-colors"
                                                     ><ArrowRight
                                                 /></el-icon>
                                             </div>
                                         </div>
                                         <div class="flex items-center">
-                                            <span class="text-gray-700 w-20 font-medium"
+                                            <span class="text-gray-500 w-20 text-sm font-medium"
                                                 >购买数量</span
                                             >
                                             <el-input-number
@@ -195,35 +167,32 @@
                                                 :max="product.inventory || 99"
                                                 class="custom-number-input"
                                             />
+                                            <span class="ml-4 text-xs text-gray-400">库存 {{ product.inventory }} 件</span>
                                         </div>
-                                        <div class="flex gap-8 text-sm pt-2">
-                                            <div class="flex flex-col">
-                                                <span class="text-gray-500 mb-1">累计销量</span>
-                                                <span class="text-gray-900 font-bold">{{
-                                                    product.sale
-                                                }}</span>
+                                        
+                                        <!-- 数据统计 -->
+                                        <div class="grid grid-cols-3 gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-50">
+                                            <div class="text-center border-r border-gray-100 last:border-0">
+                                                <p class="text-xs text-gray-400 mb-1">累计销量</p>
+                                                <p class="text-base font-bold text-gray-800">{{ product.sale }}</p>
                                             </div>
-                                            <div class="flex flex-col">
-                                                <span class="text-gray-500 mb-1">库存数量</span>
-                                                <span class="text-gray-900 font-bold">{{
-                                                    product.inventory
-                                                }}</span>
+                                            <div class="text-center border-r border-gray-100 last:border-0">
+                                                <p class="text-xs text-gray-400 mb-1">好评率</p>
+                                                <p class="text-base font-bold text-gray-800">99%</p>
                                             </div>
-                                            <div class="flex flex-col">
-                                                <span class="text-gray-500 mb-1">上架日期</span>
-                                                <span class="text-gray-900 font-bold">{{
-                                                    product.createTime
-                                                }}</span>
+                                            <div class="text-center">
+                                                <p class="text-xs text-gray-400 mb-1">上架日期</p>
+                                                <p class="text-sm font-bold text-gray-800">{{ product.createTime?.split(' ')[0] }}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- 操作按钮 -->
-                                <div class="flex gap-4 pt-8 mt-auto">
+                                <div class="flex gap-4 pt-10 mt-auto">
                                     <el-button
                                         type="danger"
-                                        class="flex-1! bg-orange-600! border-orange-600! hover:bg-orange-700! rounded-xl! h-12! font-bold text-lg shadow-lg shadow-orange-100"
+                                        class="flex-[2]! bg-orange-600! border-orange-600! hover:bg-orange-700! hover:scale-[1.02] active:scale-[0.98] transition-all! rounded-2xl! h-14! font-bold text-lg shadow-xl shadow-orange-200/50"
                                         :loading="buyLoading"
                                         @click="handleBuyNow"
                                     >
@@ -231,20 +200,19 @@
                                     </el-button>
                                     <el-button
                                         type="warning"
-                                        class="flex-1! bg-orange-50! border-orange-300! text-orange-700! hover:bg-orange-100! rounded-xl! h-12! font-bold text-lg"
+                                        class="flex-[1.5]! bg-orange-50! border-orange-200! text-orange-600! hover:bg-orange-100! hover:border-orange-300! rounded-2xl! h-14! font-bold text-lg transition-all!"
                                         @click="handleAddToCart"
                                     >
                                         加入购物车
                                     </el-button>
                                     <el-button
-                                        class="rounded-xl! h-12! px-6 hover:text-orange-600! hover:border-orange-300!"
+                                        class="flex-none! w-14! h-14! rounded-2xl! border-gray-200! hover:text-orange-600! hover:border-orange-300! transition-all!"
                                         :class="{
-                                            'text-orange-600! border-orange-300!': isFavorite,
+                                            'text-orange-600! border-orange-200! bg-orange-50/50': isFavorite,
                                         }"
-                                        :icon="Star"
                                         @click="handleFavorite"
                                     >
-                                        {{ isFavorite ? '已收藏' : '收藏' }}
+                                        <el-icon :size="20"><Star v-if="!isFavorite" /><StarFilled v-else /></el-icon>
                                     </el-button>
                                 </div>
                             </div>
@@ -253,69 +221,43 @@
 
                     <!-- 详情标签页卡片 -->
                     <div
-                        class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+                        class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden"
                     >
                         <el-tabs v-model="activeTab" class="custom-tabs">
-                            <el-tab-pane label="商品详情" name="detail">
-                                <div class="p-8">
+                            <el-tab-pane name="detail">
+                                <template #label>
+                                    <div class="flex items-center gap-2 px-2">
+                                        <el-icon><Document /></el-icon>
+                                        <span>商品详情</span>
+                                    </div>
+                                </template>
+                                <div class="p-6 lg:p-12">
                                     <!-- 商品描述 - 支持 HTML 内容 -->
                                     <div
                                         v-if="product.description"
-                                        class="prose max-w-none text-gray-800 leading-loose"
+                                        class="prose max-w-none text-gray-700 leading-relaxed"
                                         v-html="product.description"
                                     >
                                     </div>
-                                    <div v-else class="prose max-w-none">
-                                        <p class="text-gray-800 leading-loose text-lg">
-                                            {{ product.goodsInfo || '暂无商品详情' }}
-                                        </p>
+                                    <div v-else class="prose max-w-none text-center py-20">
+                                        <el-empty description="暂无详细描述" :image-size="100" />
                                     </div>
-
                                 </div>
                             </el-tab-pane>
-                            <el-tab-pane :label="`评价 (${commentsTotal || 0})`" name="comments">
-                                <div class="p-8">
-                                    <div v-if="comments.length > 0" class="space-y-8">
-                                        <div
-                                            v-for="comment in comments"
-                                            :key="comment.id"
-                                            class="flex gap-4 pb-8 border-b border-gray-50 last:border-0"
-                                        >
-                                            <div
-                                                class="w-12 h-12 rounded-full bg-gray-100 shrink-0 flex items-center justify-center text-gray-400"
-                                            >
-                                                <el-icon :size="24"><User /></el-icon>
-                                            </div>
-                                            <div class="flex-1">
-                                                <div class="flex items-center justify-between mb-2">
-                                                    <span class="font-bold text-gray-900">{{
-                                                        comment.user
-                                                    }}</span>
-                                                    <span class="text-xs text-gray-500">{{
-                                                        comment.time
-                                                    }}</span>
-                                                </div>
-                                                <el-rate
-                                                    v-model="comment.rating"
-                                                    disabled
-                                                    size="small"
-                                                    class="mb-3"
-                                                />
-                                                <p class="text-gray-700 leading-relaxed">
-                                                    {{ comment.content }}
-                                                </p>
-                                            </div>
-                                        </div>
+                            <el-tab-pane name="comments">
+                                <template #label>
+                                    <div class="flex items-center gap-2 px-2">
+                                        <el-icon><ChatLineRound /></el-icon>
+                                        <span>用户评价</span>
+                                        <span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-normal">{{ commentsTotal }}</span>
                                     </div>
-                                    <div
-                                        v-else
-                                        class="flex flex-col items-center justify-center py-20 text-gray-400"
-                                    >
-                                        <el-icon class="text-5xl mb-4 text-gray-300"><ChatDotRound /></el-icon>
-                                        <p v-if="!commentsLoading" class="text-gray-500">暂无评价</p>
-                                        <p v-else class="text-gray-500">加载中...</p>
-                                    </div>
-                                </div>
+                                </template>
+                                <!-- 商品评价组件 -->
+                                <GoodsComments 
+                                    v-if="goodsId"
+                                    :goods-id="goodsId"
+                                    @update:total="commentsTotal = $event"
+                                />
                             </el-tab-pane>
                         </el-tabs>
                     </div>
@@ -358,25 +300,27 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, onMounted, computed, watch } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
     import { ElMessage } from 'element-plus'
     import {
         Loading,
         Star,
-        Check,
+        StarFilled,
         CircleCheck,
-        User,
-        ChatDotRound,
         Warning,
         Location,
         ArrowRight,
         Picture,
+        Document,
+        ChatLineRound,
     } from '@element-plus/icons-vue'
     import Header from '@/views/home/model/Header.vue'
     import AddressSelector from './model/AddressSelector.vue'
+    import StoreInfoCard from './model/StoreInfoCard.vue'
+    import GoodsComments from './model/GoodsComments.vue'
     import { fetchAddressList, type Address } from '@/api/address'
-    import type { GoodsDetail, GoodsComment } from '@/api/goods'
-    import { fetchGoodsDetail, fetchGoodsComments } from '@/api/goods'
+    import type { GoodsDetail } from '@/api/goods'
+    import { fetchGoodsDetail } from '@/api/goods'
     import { createInstantBuyOrder } from '@/api/order'
     import { addFavorite, removeFavorite, checkFavoriteStatus } from '@/api/favorite'
     import { addToCart } from '@/api/cart'
@@ -398,6 +342,7 @@
     const currentOrderNo = ref('')
     const isFavorite = ref(false)
     const favoriteId = ref<string | null>(null)
+    const commentsTotal = ref(0)
 
     const totalAmount = computed(() => {
         if (!product.value) return 0
@@ -435,53 +380,8 @@
         return imgs
     })
 
-    // 评论懒加载相关
-    const comments = ref<GoodsComment[]>([])
-    const commentsPage = ref(1)
-    const commentsPageSize = ref(10)
-    const commentsTotal = ref(0)
-    const commentsLoading = ref(false)
-    const commentsLoaded = ref(false)
-
-    const loadComments = async (page = 1): Promise<void> => {
-        if (!goodsId.value) return
-        try {
-            commentsLoading.value = true
-            const res = await fetchGoodsComments(goodsId.value, {
-                page,
-                pageSize: commentsPageSize.value,
-            })
-            const data = res.data
-            if (data && Array.isArray(data.records)) {
-                if (page === 1) comments.value = data.records
-                else comments.value.push(...data.records)
-                commentsTotal.value = data.total ?? commentsTotal.value
-                commentsPage.value = page
-                commentsLoaded.value = true
-            }
-        } catch (err) {
-            console.error('加载评论失败', err)
-        } finally {
-            commentsLoading.value = false
-        }
-    }
-
-    // 在切换到评论标签时触发懒加载
-    watch(activeTab, (val) => {
-        if (val === 'comments' && !commentsLoaded.value) {
-            loadComments(1)
-        }
-    })
     const route = useRoute()
     const router = useRouter()
-
-    const goToStore = () => {
-        if (product.value?.storeId) {
-            router.push({ name: 'Store', params: { storeId: product.value.storeId } })
-        } else {
-            ElMessage.warning('店铺信息加载中或不存在')
-        }
-    }
 
     // 加载商品详情
     const loadGoodsDetail = async () => {
@@ -589,7 +489,6 @@
             ElMessage.success('已加入购物车')
         } catch (err) {
             console.error('添加购物车失败:', err)
-            // 错误信息已由 http 拦截器处理
         }
     }
 
@@ -601,7 +500,6 @@
 
         try {
             if (isFavorite.value) {
-                // 取消收藏：直接使用已保存的 favoriteId
                 if (favoriteId.value) {
                     await removeFavorite(favoriteId.value)
                     isFavorite.value = false
@@ -609,7 +507,6 @@
                     ElMessage.success('已取消收藏')
                 }
             } else {
-                // 添加收藏
                 const res = await addFavorite(goodsId.value, product.value.storeId)
                 if (res.data) {
                     isFavorite.value = true
@@ -631,8 +528,7 @@
 
 <style scoped>
     :deep(.el-header) {
-        background-color: white;
-        border-bottom: 1px solid #f1f5f9;
+        background-color: transparent;
     }
 
     :deep(.el-main) {
@@ -641,13 +537,16 @@
 
     :deep(.custom-number-input .el-input__wrapper) {
         border-radius: 12px;
-        box-shadow: 0 0 0 1px #f3f4f6 inset;
+        box-shadow: none !important;
+        background-color: #f9fafb;
+        border: 1px solid #f3f4f6;
     }
 
     :deep(.custom-tabs .el-tabs__header) {
         margin: 0;
-        padding: 0 32px;
-        border-bottom: 1px solid #f9fafb;
+        padding: 0 40px;
+        border-bottom: 1px solid #f3f4f6;
+        background-color: #fff;
     }
 
     :deep(.custom-tabs .el-tabs__nav-wrap::after) {
@@ -655,32 +554,54 @@
     }
 
     :deep(.custom-tabs .el-tabs__item) {
-        height: 64px;
+        height: 72px;
         font-size: 16px;
-        font-weight: 700;
-        color: #9ca3af;
+        font-weight: 600;
+        color: #6b7280;
+        transition: all 0.3s;
     }
 
     :deep(.custom-tabs .el-tabs__item.is-active) {
-        color: #f97316;
+        color: #ea580c;
     }
 
     :deep(.custom-tabs .el-tabs__active-bar) {
-        background-color: #f97316;
-        height: 3px;
-        border-radius: 3px;
+        background-color: #ea580c;
+        height: 4px;
+        border-radius: 4px 4px 0 0;
     }
 
     /* 商品详情富文本图片适配 */
     :deep(.prose img) {
         max-width: 100% !important;
         height: auto !important;
-        border-radius: 12px;
+        border-radius: 20px;
         display: block;
-        margin: 1.5rem auto;
+        margin: 2rem auto;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
     }
 
     :deep(.prose p) {
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
+        color: #374151;
     }
+
+    /* 动画 */
+    .animate-in {
+        animation-duration: 0.5s;
+        animation-fill-mode: both;
+    }
+
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slide-in-from-bottom {
+        from { transform: translateY(20px); }
+        to { transform: translateY(0); }
+    }
+
+    .fade-in { animation-name: fade-in; }
+    .slide-in-from-bottom-4 { animation-name: slide-in-from-bottom; }
 </style>

@@ -3,7 +3,6 @@ import { http } from '@/utils/http'
 export interface LoginPayload {
     username: string
     password: string
-    role: string
 }
 
 export interface LoginResponse {

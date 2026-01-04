@@ -6,7 +6,7 @@
 
     const props = defineProps<{
         visible: boolean
-        amount: number
+        amount: string
         orderNo: string
         quantity: number
     }>()
@@ -69,7 +69,7 @@
         try {
             // 查询支付状态
             const res = await getPaymentStatus(props.orderNo)
-            
+
             if (res && res.data === true) {
                 // 支付成功
                 currentStep.value = PayStep.SUCCESS
@@ -155,7 +155,7 @@
                 <p class="text-gray-500 text-sm mb-1">请使用{{ getSelectedMethodInfo().name }}扫码支付</p>
                 <div class="text-2xl font-black text-gray-800">¥{{ amount }}</div>
             </div>
-            
+
             <div class="relative p-4 bg-white border-2 border-gray-50 rounded-2xl shadow-inner mb-6">
                 <img :src="getSelectedMethodInfo().qrCode" alt="支付二维码" class="w-48 h-48" />
                 <div v-if="loading" class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-2xl">

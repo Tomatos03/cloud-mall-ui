@@ -40,10 +40,17 @@
                             <div class="flex flex-col md:flex-row items-end md:items-center gap-6">
                                 <div class="relative">
                                     <img
+                                        v-if="storeInfo.avatarUrl"
                                         :src="getImageURL(storeInfo.avatarUrl)"
                                         :alt="storeInfo.name"
                                         class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg object-cover bg-white"
                                     />
+                                    <div
+                                        v-else
+                                        class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg bg-gray-50 flex items-center justify-center text-gray-400"
+                                    >
+                                        <el-icon :size="64"><Shop /></el-icon>
+                                    </div>
                                     <div class="absolute -bottom-2 -right-2 bg-orange-500 text-white rounded-full p-1 border-2 border-white">
                                         <el-icon :size="16"><Check /></el-icon>
                                     </div>

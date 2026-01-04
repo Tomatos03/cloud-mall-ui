@@ -12,7 +12,10 @@
                 <div class="relative group">
                     <el-avatar
                         :size="100"
-                        :src="getImageURL(formData.avatarUrl) || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
+                        :src="
+                            getImageURL(formData.avatarUrl) ||
+                            'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+                        "
                         class="border-4 border-orange-50 shadow-sm"
                     />
                     <div
@@ -62,10 +65,6 @@
                 class="personal-form"
             >
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                    <el-form-item label="用户 ID" class="opacity-70">
-                        <el-input v-model="formData.id" disabled class="custom-input" />
-                    </el-form-item>
-
                     <el-form-item label="昵称" prop="nickname">
                         <el-input
                             v-model="formData.nickname"
@@ -134,7 +133,8 @@
     import { useUserStore } from '@/stores/user'
     import { Camera } from '@element-plus/icons-vue'
     import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-    import { getUserInfo, updateUserInfo, uploadAvatar, type UpdateUserInfoPayload } from '@/api/user'
+    import { getUserInfo, updateUserInfo, type UpdateUserInfoPayload } from '@/api/user'
+    import { uploadImage } from '@/api/common'
     import { getImageURL } from '@/utils/image'
 
     const userStore = useUserStore()
@@ -144,8 +144,8 @@
     const uploading = ref(false)
     const uploadProgress = ref(0)
 
-    const formData = reactive({
-        id: '',
+    const formData = reactive<UpdateUserInfoPayload>({
+        uid: userStore.uid,
         nickname: '',
         phone: '',
         email: '',
@@ -158,38 +158,15 @@
             { required: true, message: '请输入昵称', trigger: 'blur' },
             { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' },
         ],
-        phone: [
-            { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' },
-        ],
-        email: [
-            { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
-        ],
-        bio: [
-            { max: 200, message: '个人简介不能超过 200 个字符', trigger: 'blur' },
-        ],
+        phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }],
+        email: [{ type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }],
+        bio: [{ max: 200, message: '个人简介不能超过 200 个字符', trigger: 'blur' }],
     }
 
     // 加载用户信息
     const loadUserInfo = async () => {
-        try {
-            // HTTP 工具类已判断成功/失败，能执行到这里说明请求成功
-            const res = await getUserInfo()
-            Object.assign(formData, {
-                id: res.data.id || userStore.id,
-                nickname: res.data.nickname || userStore.nickname,
-                phone: res.data.phone ?? '',        // 使用 ?? 处理 null
-                email: res.data.email ?? '',        // 使用 ?? 处理 null
-                bio: res.data.bio ?? '',            // 使用 ?? 处理 null
-                avatarUrl: res.data.avatarUrl ?? userStore.avatarUrl ?? '',
-            })
-        } catch (error) {
-            // HTTP 工具类已处理错误提示，这里仅使用 store 中的数据作为降级方案
-            Object.assign(formData, {
-                id: userStore.id,
-                nickname: userStore.nickname,
-                avatarUrl: userStore.avatarUrl ?? '',
-            })
-        }
+        const res = await getUserInfo()
+        Object.assign(formData, res.data)
     }
 
     // 触发文件选择
@@ -221,7 +198,6 @@
     const handleFileChange = async (event: Event) => {
         const target = event.target as HTMLInputElement
         const file = target.files?.[0]
-
         if (!file) return
 
         // 验证文件
@@ -241,8 +217,7 @@
                 }
             }, 100)
 
-            // 调用上传接口（HTTP 工具类已判断成功/失败）
-            const res = await uploadAvatar(file)
+            const res = await uploadImage(file)
 
             clearInterval(progressInterval)
             uploadProgress.value = 100
@@ -251,11 +226,13 @@
             formData.avatarUrl = res.data.url
 
             // 同时更新用户信息中的头像
-            await updateUserInfo({ avatarUrl: res.data.url })
+            await updateUserInfo({
+                ...formData,
+                avatarUrl: res.data.url,
+            })
 
             // 更新 store
-            userStore.setUser({ avatar: res.data.url })
-
+            userStore.setUser({ avatarUrl: res.data.url })
             ElMessage.success('头像上传成功')
         } finally {
             uploading.value = false
@@ -277,24 +254,22 @@
 
                     // 构建请求参数，空字符串不发送
                     const payload: UpdateUserInfoPayload = {
-                        nickname: formData.nickname,
-                        phone: formData.phone.trim() || undefined,
-                        email: formData.email.trim() || undefined,
-                        bio: formData.bio.trim() || undefined,
+                        uid: formData.uid,
+                        avatarUrl: formData.avatarUrl ? formData.avatarUrl.trim() : undefined,
+                        nickname: formData.nickname ? formData.nickname.trim() : undefined,
+                        phone: formData.phone ? formData.phone.trim() : undefined,
+                        email: formData.email ? formData.email.trim() : undefined,
+                        bio: formData.bio ? formData.bio.trim() : undefined,
                     }
 
-                    // HTTP 工具类已判断成功/失败，能执行到这里说明请求成功
                     await updateUserInfo(payload)
 
                     // 更新 store 中的用户信息
                     userStore.setUser({
                         nickname: formData.nickname,
-                        avatar: formData.avatarUrl,
+                        avatarUrl: formData.avatarUrl,
                     })
-
                     ElMessage.success('个人信息更新成功')
-                } catch (error) {
-                    // HTTP 工具类已处理错误提示
                 } finally {
                     loading.value = false
                 }
@@ -305,7 +280,7 @@
     // 重置表单
     const handleReset = () => {
         loadUserInfo()
-        formRef.value?.clearValidate()
+        formRef.value?.clearValidate() // 清理所有校验错误提示
     }
 
     // 组件挂载时加载用户信息

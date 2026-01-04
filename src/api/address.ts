@@ -8,22 +8,25 @@ export interface Address {
     /** 收货人 */
     receiver: string
     /** 地区代码（最后一级行政区代码） */
-    regionCode: string | number
+    regionCode: string
     /** 详细地址 */
     detail: string
     /** 邮编 */
     zipCode: string
+    fullAddress: string
     /** 联系电话 */
     phone: string
     /** 是否默认地址 */
     isDefault: boolean
 }
 
+export type AddressFormData = Omit<Address, 'fullAddress'>
+
 /**
  * 获取收货地址列表
  */
 export function fetchAddressList() {
-    return http.get<Address[]>('/address/list')
+    return http.get<Address[]>('/address')
 }
 
 /**
